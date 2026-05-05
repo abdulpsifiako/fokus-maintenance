@@ -1,0 +1,52 @@
+const { EntitySchema } = require("typeorm")
+
+module.exports= new EntitySchema({
+    name:"Fasilitator",
+    tableName:"fasilitator",
+    columns:{
+        id:{
+            type:'int',
+            primary:true,
+            generated:true
+        },
+        name:{
+            type:'varchar',
+            length:100,
+            nullable:true
+        },
+        jobdesk:{
+            type:'varchar',
+            length:255,
+            nullable:true
+        },
+        image:{
+            type:'varchar',
+            length:255,
+            nullable:true
+        },
+        properties:{
+            type:"jsonb",
+            nullable:true
+        },
+        status:{
+            type:'boolean',
+            default:false
+        },
+        created_at:{
+            type:"timestamptz",
+            nullable:true
+        },
+        updated_at:{
+            type:"timestamptz",
+            nullable:true
+        },
+        is_active:{
+            type:'boolean',
+            default:false
+        },
+        is_deleted:{
+            type:'boolean',
+            default:false
+        }
+    }
+})

@@ -1,0 +1,379 @@
+import LoadingModal from "@/components/public/loadingModal";
+import { createSnapTransaksi } from "@/lib/axios/transaksi";
+import { addNewPropertiesTransaksi } from "@/lib/redux/store/transaksi";
+import Image from "next/image";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import Cookies from "js-cookie";
+import PaymentModal from "@/components/user/paymentModal";
+import Alert from "@/components/public/alert";
+import { freeTOPremium, freeTryout } from "@/lib/axios/tryout";
+
+export default function PaketTryout() {
+  const token = Cookies.get("token");
+  const [paymentData, setPaymentData] = useState("");
+  const [loadingPage, setLoadingPage] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+  const [alert, setAlert] = useState(null);
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const datTransaksi = useSelector((state) => state.transaksi.program_utama);
+
+  const detailPurchased = useSelector((state) => state.tryout.purchased);
+  const detailSoal = useSelector((state) => state.tryout.dataSoal);
+  const dataUser = useSelector((state) => state.user.detail);
+
+  const [paket, setPaket] = useState("Premium");
+
+  // mapping otomatis fitur dari data backend
+  const fiturList = (detailSoal?.properties?.fitur || []).map((fitur) => {
+    const lower = fitur.toLowerCase();
+
+    return {
+      name: fitur,
+      label: fitur,
+      harga:
+        lower === "premium"
+          ? parseInt(detailSoal?.properties?.hargaPremium || 0)
+          : 0,
+      start: detailSoal?.properties?.[`start${fitur}`] || null,
+      end: detailSoal?.properties?.[`end${fitur}`] || null,
+    };
+  });
+  const fasilitas = [
+    { nama: "Sistem CAB/CBT", gratis: true, premium: true },
+    { nama: "Timer Ujian", gratis: true, premium: true },
+    { nama: "Skor Akhir", gratis: true, premium: true },
+    { nama: "Perangkingan Nasional", gratis: false, premium: true },
+    { nama: "Statistik Nilai", gratis: false, premium: true },
+    { nama: "Pembahasan", gratis: false, premium: true },
+    { nama: "Dapat Dikerjakan Berulang Kali", gratis: false, premium: true },
+    { nama: "Komentar Postingan Instagram", gratis: false, premium: true },
+    { nama: "Masa Aktif 6 Bulan", gratis: false, premium: true },
+  ];
+  useEffect(() => {
+    if (!datTransaksi && !detailPurchased && !detailSoal) {
+      router.push("/tryout");
+    }
+  }, [router, datTransaksi, detailPurchased, detailSoal]);
+
+  useEffect(() => {
+    if (fiturList.length === 1) {
+      setPaket(fiturList[0].name);
+    }
+  }, [datTransaksi?.to_data, fiturList]);
+
+  if (!datTransaksi && !detailPurchased && !detailSoal) {
+    return null;
+  }
+
+  const hanyaGratis = fiturList.length === 1 && fiturList[0].name === "Gratis";
+  const sudahPunyaGratis = detailPurchased?.isFreeTO === true;
+  const hideBeliButton = hanyaGratis && sudahPunyaGratis;
+  const normalizeDate = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  //  //  console.log(datTransaksi);
+  return (
+    <div className="p-7 font-poppins my-7">
+      {/* Header */}
+      <div className="sm:flex">
+        {/* Deskripsi dan Pilihan Paket */}
+        <div className="sm:w-1/2 bg-white rounded-xl p-4">
+          <div className="sm:w-1/2 justify-end flex flex-col ml-auto">
+            <h2 className="font-bold text-red-700 mb-2 text-sm">
+              {datTransaksi?.program_name || detailSoal?.judul}
+            </h2>
+            <p className="text-xs mb-2">Jenis Paket</p>
+
+            <div className="space-y-3">
+              <div className="flex flex-col gap-4 text-xs">
+                {fiturList.map((item) => (
+                  <label
+                    key={item.name}
+                    className={`flex items-center gap-1 cursor-pointer ${detailPurchased?.isFreeTO == true && item.name == "Gratis" ? "hidden" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="paket"
+                      value={item.name}
+                      checked={paket === item.name}
+                      onChange={() => setPaket(item.name)}
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+
+              {paket && (
+                <div className="text-xs">
+                  {(() => {
+                    const selected = fiturList.find((f) => f.name === paket);
+                    return (
+                      <>
+                        <p className="font-semibold">
+                          Harga:{" "}
+                          {selected?.harga === 0
+                            ? "Rp 0"
+                            : `Rp ${selected?.harga.toLocaleString("id-ID")}`}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+            {detailPurchased && (
+              <button
+                type="button"
+                onClick={() => router.push("/detail-to/summary")}
+                className={`
+      ${
+        detailPurchased?.isFreeTO &&
+        normalizeDate(detailPurchased?.toStart) <
+          normalizeDate(detailSoal?.properties.endGratis)
+          ? ""
+          : "hidden"
+      }
+      ${
+        normalizeDate(detailPurchased?.toStart) > normalizeDate(new Date())
+          ? "disabled cursor-not-allowed opacity-50"
+          : "cursor-pointer"
+      }
+      text-white px-4 py-2 rounded-md text-xs bg-primary mt-2
+    `}
+              >
+                {normalizeDate(detailPurchased?.toStart) >
+                normalizeDate(new Date())
+                  ? (() => {
+                      const start = normalizeDate(detailPurchased?.toStart);
+                      const today = normalizeDate(new Date());
+                      const diffDays = Math.round(
+                        (start - today) / (1000 * 60 * 60 * 24)
+                      );
+                      return `Bisa dikerjakan dalam ${diffDays} hari lagi`;
+                    })()
+                  : "Mulai kerjakan"}
+              </button>
+            )}
+
+            {/* <button
+              type="button"
+              onClick={async () => {
+                if (paket === "Gratis") {
+                  setLoading(true); // tampilkan modal loading
+                  await new Promise((resolve) => setTimeout(resolve, 2000));
+                  dispatch(
+                    addNewPropertiesTransaksi({
+                      harga: 0,
+                    })
+                  );
+                  router.push("/form-to");
+                } else {
+                  setLoading(true); // tampilkan modal loading
+                  await new Promise((resolve) => setTimeout(resolve, 2000));
+                  dispatch(
+                    addNewPropertiesTransaksi({
+                      harga: Number(detailSoal?.properties?.hargaPremium),
+                    })
+                  );
+                  router.push("/pembayaran");
+                }
+              }}
+              className="mt-2 bg-red-700 text-white px-4 py-2 rounded-md text-xs"
+            >
+              {paket === "Premium" ? "Beli" : "Daftar"} Sekarang
+            </button> */}
+            {!hideBeliButton && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoadingPage(true);
+
+                  if (paket === "Gratis") {
+                    dispatch(addNewPropertiesTransaksi({ harga: 0 }));
+                    router.push("/form-to");
+                  } else if (
+                    paket === "Premium" &&
+                    detailSoal?.properties?.hargaPremium > 0
+                  ) {
+                    try {
+                      const res = await createSnapTransaksi(
+                        {
+                          data_transaksi: {
+                            ...datTransaksi,
+                            harga: Number(detailSoal?.properties?.hargaPremium),
+                            harga_akhir: Number(
+                              detailSoal?.properties?.hargaPremium
+                            ),
+                          },
+                          detail: dataUser,
+                        },
+                        token
+                      );
+                      if (res.status == 200) {
+                        setPaymentData(res.data.redirect_url);
+                        setLoadingPage(false);
+                        setOpenModal(true);
+                      } else {
+                        setLoadingPage(false);
+                        setAlert({
+                          type: "error",
+                          title: "Info",
+                          message: "Gagal membuat transaksi",
+                        });
+                        return;
+                      }
+                    } catch (error) {
+                      setLoadingPage(false);
+                      setAlert({
+                        type: "error",
+                        title: "Info",
+                        message: "Gagal membuat transaksi",
+                      });
+                      return;
+                    }
+                  } else if (
+                    paket === "Premium" &&
+                    detailSoal?.properties?.hargaPremium < 1
+                  ) {
+                    try {
+                      const res = await freeTOPremium(
+                        {
+                          data_transaksi: {
+                            ...datTransaksi,
+                            harga: 0,
+                            harga_akhir: 0,
+                          },
+                        },
+                        token
+                      );
+                      if (res.status == 200) {
+                        setLoadingPage(false);
+                        setAlert({
+                          type: "success",
+                          title: "Info",
+                          message: "Sukses menambahkan Tryout",
+                        });
+                        router.push("/pembelian");
+                      }
+                    } catch (error) {
+                      setLoadingPage(false);
+                      setAlert({
+                        type: "error",
+                        title: "Info",
+                        message: "Gagal membuat transaksi",
+                      });
+                      return;
+                    }
+                  }
+                }}
+                className="mt-2 bg-red-700 text-white px-4 py-2 rounded-md text-xs"
+              >
+                {paket === "Premium" ? "Beli" : "Daftar"} Sekarang
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Gambar */}
+        <div className="sm:w-1/2 flex items-center justify-start">
+          <div className="rounded-xl overflow-hidden sm:w-[300px] sm:h-[200px] flex items-center justify-center bg-white">
+            <Image
+              src="/to.png"
+              alt="Tryout"
+              width={1000}
+              height={1000}
+              className="object-contain"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabel Fasilitas */}
+      <div className="mt-10 bg-white rounded-xl shadow p-4 overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead>
+            <tr className="text-center">
+              <th className="py-2 text-left">Fasilitas</th>
+              {fiturList.some((item) => item.name == "Gratis") ? (
+                <th className="py-2">
+                  Gratis
+                  <div className="text-xs font-normal">
+                    {detailSoal?.properties.startGratis} s/d{" "}
+                    {detailSoal?.properties.endGratis}
+                  </div>
+                </th>
+              ) : (
+                ""
+              )}
+              {fiturList.some((item) => item.name == "Premium") ? (
+                <th className="py-2">
+                  Premium
+                  <div className="text-xs font-normal">
+                    Tidak Ada Batas Periode Pengerjaan
+                  </div>
+                </th>
+              ) : (
+                ""
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {fasilitas.map((item, index) => (
+              <tr
+                key={index}
+                className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+              >
+                <td className="py-3 px-2">{item.nama}</td>
+                {fiturList.some((item) => item.name == "Gratis") ? (
+                  <td className="text-center">
+                    {item.gratis ? (
+                      <FaCheckCircle className="text-blue-600 mx-auto" />
+                    ) : (
+                      <FaTimesCircle className="text-red-500 mx-auto" />
+                    )}
+                  </td>
+                ) : (
+                  ""
+                )}
+                {fiturList.some((item) => item.name == "Premium") ? (
+                  <td className="text-center">
+                    {item.premium ? (
+                      <FaCheckCircle className="text-blue-600 mx-auto" />
+                    ) : (
+                      <FaTimesCircle className="text-red-500 mx-auto" />
+                    )}
+                  </td>
+                ) : (
+                  ""
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <PaymentModal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        paymentData={paymentData}
+      />
+
+      <LoadingModal show={loadingPage} />
+
+      {alert && (
+        <Alert
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          onClose={() => setAlert(null)}
+        />
+      )}
+    </div>
+  );
+}

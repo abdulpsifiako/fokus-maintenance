@@ -1,0 +1,236 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-poppins: Poppins, sans-serif;
+
+  --color-primary: #cb1e0e;
+  --color-secondary: #af0011;
+  --color-third: #fae9e7;
+  --color-dark-primary: #7a1208;
+  --color-dark: #404040;
+
+  --max-w-99: 1440;
+}
+
+@layer utilities {
+  input:-webkit-autofill {
+    box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+}
+
+@font-face {
+  font-family: "Baskerville";
+  src: url("/fonts/NewBaskervilleStd-Roman.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Tambahkan ini di global CSS atau langsung di komponen */
+.video-js .vjs-loading-spinner {
+  display: none !important;
+}
+.video-js {
+  border-radius: 1rem; /* atau 9999px untuk full circle */
+  overflow: hidden;
+}
+
+/* Scrollbar style untuk WebKit (Chrome, Edge, Safari) */
+.custom-scroll::-webkit-scrollbar {
+  width: 2px; /* Ubah ukuran scroll */
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: gray; /* Warna thumb */
+  border-radius: 6px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1; /* Warna background track */
+}
+
+/* Quill */
+
+.controls {
+  display: flex;
+  border: 1px solid #ccc;
+  border-top: 0;
+  padding: 10px;
+}
+
+.controls-right {
+  margin-left: auto;
+}
+
+.state {
+  margin: 10px 0;
+  font-family: monospace;
+}
+
+.state-title {
+  color: #999;
+  text-transform: uppercase;
+}
+
+.ql-code-block-container {
+  background-color: #282c34 !important;
+  color: #abb2bf !important;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 12px 14px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+/* Scrool bar Soal */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* ===== Logo Loader ===== */
+.logo-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.logo-loader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: loader-fade-in 0.2s ease;
+}
+
+.logo-loader-ring {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ring berputar mengelilingi logo */
+.logo-loader-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #3b82f6; /* sesuaikan warna brand kamu */
+  animation: logo-spin 0.9s linear infinite;
+}
+
+.logo-loader-img {
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.logo-loader-text {
+  font-size: 13px;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+}
+
+@keyframes logo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loader-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===== Custom Scrollbar ===== */
+
+/* Lebar scrollbar */
+::-webkit-scrollbar {
+  width: 4px; /* vertikal */
+  height: 4px; /* horizontal */
+}
+
+/* Track (latar belakang scrollbar) */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Thumb (bagian yang bisa di-drag) */
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+/* Dark mode — opsional */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+  * {
+    scrollbar-color: #334155 transparent;
+  }
+}
+
+/* Modal info */
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

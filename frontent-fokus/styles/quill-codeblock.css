@@ -1,0 +1,59 @@
+/* Gunakan warna dari tema highlight.js (mis. atom-one-dark) */
+.ql-syntax,
+.ql-code-block-container {
+  background-color: inherit !important;   /* ambil dari tema hljs */
+  color: inherit !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 12px 14px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+/* Pastikan block <pre><code> ikut mewarisi */
+.ql-code-block-container pre,
+.ql-code-block-container code,
+.ql-syntax code {
+  background: transparent !important;
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+/* Hilangkan background putih default Quill Snow kalau masih nempel */
+.ql-snow .ql-editor pre.ql-syntax {
+  background-color: inherit !important;
+  color: inherit !important;
+}
+
+/* Untuk posisi Tengah */
+.ql-align-center {
+  text-align: center; /* Mengatur alignment teks di blok */
+}
+.ql-align-center img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Untuk posisi Kanan */
+.ql-align-right {
+  text-align: right; /* Mengatur alignment teks di blok */
+}
+.ql-align-right img {
+  display: block;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* Untuk posisi Kiri (Default, bisa diatur eksplisit jika perlu) */
+.ql-align-left {
+  text-align: left; /* Mengatur alignment teks di blok */
+}
+.ql-align-left img {
+  display: block;
+  margin-left: 0;
+  margin-right: auto;
+}

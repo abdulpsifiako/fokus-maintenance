@@ -1,0 +1,43 @@
+{
+  "name": "fokusedu-app",
+  "version": "1.0.0",
+  "description": "aplikasi ini untuk control aplikasi secara backend",
+  "keywords": [
+    "backend-app",
+    "fokusedu"
+  ],
+  "license": "ISC",
+  "author": "Abdul Latif Rosid",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "local": "npx dotenvx run --env-file=.env.local -- nodemon ./index.js",
+    "dev": "npx dotenvx run --env-file=.env.production -- nodemon ./index.js",
+    "start": "npx dotenvx run --env-file=.env.production -- node ./index.js"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.44.1",
+    "argon2": "^0.43.0",
+    "body-parser": "^2.2.0",
+    "compression": "^1.8.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "fs": "^0.0.1-security",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "midtrans-client": "^1.4.3",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.5",
+    "nodemailer-express-handlebars": "^7.0.0",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.0",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.24",
+    "uuid": "^11.1.0"
+  }
+}
