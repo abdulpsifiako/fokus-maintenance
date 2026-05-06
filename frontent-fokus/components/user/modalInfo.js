@@ -5,15 +5,19 @@ export default function ModalInfo({ info, onClose }) {
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center
         bg-black/55 backdrop-blur-sm px-4"
-      onClick={onClose} // klik backdrop = tutup
+      onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-sm overflow-hidden
-          shadow-2xl animate-[modal-in_0.25s_ease]"
-        onClick={(e) => e.stopPropagation()} // jangan tutup saat klik isi
+        className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl
+          animate-[modal-in_0.25s_ease] flex flex-col
+          max-h-[90vh]" // ✅ batas tinggi modal
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="relative p-5 pb-4" style={{ background: "#cb1e0e" }}>
+        {/* Header — fixed, tidak ikut scroll */}
+        <div
+          className="relative rounded-t-2xl p-5 pb-4 flex-shrink-0"
+          style={{ background: "#cb1e0e" }}
+        >
           <button
             onClick={onClose}
             className="absolute top-3 right-3 w-7 h-7 rounded-full
@@ -23,7 +27,6 @@ export default function ModalInfo({ info, onClose }) {
             ✕
           </button>
 
-          {/* Badge */}
           <span
             className="inline-flex items-center gap-1.5 text-white/90
             text-xs font-semibold bg-white/20 px-3 py-1
@@ -37,13 +40,13 @@ export default function ModalInfo({ info, onClose }) {
           </h2>
         </div>
 
-        {/* Body */}
-        <div className="p-5">
+        {/* Body — scrollable */}
+        <div className="p-5 overflow-y-auto flex-1">
+          {" "}
+          {/* ✅ scroll di sini */}
           <p className="text-sm text-slate-600 leading-relaxed mb-3">
             {info.deskripsi}
           </p>
-
-          {/* Tanggal — opsional */}
           {info.tanggal && (
             <p className="text-xs text-slate-400 mb-4">
               📅{" "}
@@ -54,8 +57,6 @@ export default function ModalInfo({ info, onClose }) {
               })}
             </p>
           )}
-
-          {/* Tombol CTA — opsional jika ada link */}
           {info.link ? (
             <a
               href={info.link}
@@ -81,7 +82,8 @@ export default function ModalInfo({ info, onClose }) {
           )}
         </div>
 
-        <p className="text-center text-xs text-slate-400 pb-4">
+        {/* Footer — fixed, tidak ikut scroll */}
+        <p className="text-center text-xs text-slate-400 py-3 flex-shrink-0 border-t border-slate-100">
           Klik di luar atau ✕ untuk menutup
         </p>
       </div>

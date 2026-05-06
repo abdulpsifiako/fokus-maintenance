@@ -19,6 +19,7 @@ import Alert from "@/components/public/alert";
 import PaymentModal from "@/components/user/paymentModal";
 import LoadingModal from "@/components/public/loadingModal";
 import { setTab } from "@/lib/redux/store/tab";
+import VoucherModal from "@/components/user/voucherModal";
 
 export default function VideoFokusEdu() {
   const dataUser = useSelector((state) => state.user.detail);
@@ -34,7 +35,7 @@ export default function VideoFokusEdu() {
 
   const activeTab = useSelector((state) => state.tab.tab);
   const setActiveTab = (tab) => dispatch(setTab(tab));
-
+  const [openVoucherModal, setOpenVoucherModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [userHasPurchased, setUserHasPurchased] = useState(false);
   const [historyVideo, setHistoryVideo] = useState(null);
@@ -96,22 +97,14 @@ export default function VideoFokusEdu() {
   }, [getProgramById]);
 
   const handleBeliAkses = async () => {
-    setLoadingPage(true);
     if (!token) {
       router.push("/auth/login");
       return;
     }
-    // dispatch(
-    //   addTransaksiProgramUtama({
-    //     user_id: dataUser.id,
-    //     jenis: "Program Utama",
-    //     program_id: data.id,
-    //     status: "CREATED",
-    //     program_name: data.properties.name,
-    //   })
-    // );
-    // router.push("/paket");
+
+    // Program gratis — langsung proses tanpa voucher
     if (data?.properties?.harga == 0) {
+      setLoadingPage(true);
       try {
         await createTransaksiFreeProgram(
           {
@@ -122,13 +115,12 @@ export default function VideoFokusEdu() {
               status: "CREATED",
               program_name: data.properties.name,
               bulan: Number(data?.properties?.durasi),
-              harga: data?.properties?.harga,
+              harga: 0,
               harga_akhir: 0,
             },
           },
           token,
         );
-
         router.push("/pembelian");
       } catch (error) {
         setLoadingPage(false);
@@ -137,48 +129,63 @@ export default function VideoFokusEdu() {
           title: "Info",
           message: "Gagal membuat transaksi",
         });
-        return;
       }
-    } else {
-      try {
-        const res = await createSnapTransaksi(
-          {
-            data_transaksi: {
-              user_id: dataUser.id,
-              jenis: "Program Utama",
-              program_id: data.id,
-              status: "CREATED",
-              program_name: data.properties.name,
-              bulan: Number(data?.properties?.durasi),
-              harga: data?.properties?.harga,
-              harga_akhir: Number(data?.properties?.harga),
-            },
-            detail: dataUser,
+      return;
+    }
+
+    // ✅ Program berbayar — tampilkan voucher modal dulu
+    setOpenVoucherModal(true);
+  };
+
+  // ✅ Handler setelah user klik "Lanjut Pembayaran" di VoucherModal
+  const handleLanjutPembayaran = async ({
+    harga_akhir,
+    voucherCode,
+    potongan,
+    tipe,
+  }) => {
+    setOpenVoucherModal(false);
+    setLoadingPage(true);
+
+    try {
+      const res = await createSnapTransaksi(
+        {
+          data_transaksi: {
+            user_id: dataUser.id,
+            jenis: "Program Utama",
+            program_id: data.id,
+            status: "CREATED",
+            program_name: data.properties.name,
+            bulan: Number(data?.properties?.durasi),
+            harga: data?.properties?.harga,
+            harga_akhir, // ✅ harga setelah potongan
+            voucherCode, // ✅ kode voucher
+            tipe: tipe,
           },
-          token,
-        );
-        if (res.status == 200) {
-          setPaymentData(res.data.redirect_url);
-          setLoadingPage(false);
-          setOpenModal(true);
-        } else {
-          setLoadingPage(false);
-          setAlert({
-            type: "error",
-            title: "Info",
-            message: "Gagal membuat transaksi",
-          });
-          return;
-        }
-      } catch (error) {
+          detail: dataUser,
+        },
+        token,
+      );
+
+      if (res.status == 200) {
+        setPaymentData(res.data.redirect_url);
+        setLoadingPage(false);
+        setOpenModal(true);
+      } else {
         setLoadingPage(false);
         setAlert({
           type: "error",
           title: "Info",
           message: "Gagal membuat transaksi",
         });
-        return;
       }
+    } catch (error) {
+      setLoadingPage(false);
+      setAlert({
+        type: "error",
+        title: "Info",
+        message: "Gagal membuat transaksi",
+      });
     }
   };
 
@@ -381,6 +388,13 @@ export default function VideoFokusEdu() {
           />
         </div>
       </div>
+      {openVoucherModal && (
+        <VoucherModal
+          harga={data?.properties?.harga}
+          onClose={() => setOpenVoucherModal(false)}
+          onLanjut={handleLanjutPembayaran}
+        />
+      )}
       {activeTab === "video" ? (
         <ScrollVideoRight onSelectVideo={setSelectedVideo} data={otherVideo} />
       ) : (

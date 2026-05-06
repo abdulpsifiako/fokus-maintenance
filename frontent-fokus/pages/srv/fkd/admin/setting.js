@@ -29,8 +29,10 @@ function SettingsPage() {
     setData((prev) => ({ ...prev, [name]: value }));
   };
   useEffect(() => {
-    fetchSetting();
-  });
+    if (token) {
+      fetchSetting();
+    }
+  }, [token]);
   const updateData = async () => {
     try {
       const res = await updateSetting(data, token);

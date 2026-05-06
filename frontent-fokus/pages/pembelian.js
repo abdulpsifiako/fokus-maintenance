@@ -86,11 +86,11 @@ export default function RiwayatPembelian() {
         {
           data_transaksi: {
             order_id: item.id,
-            harga_akhir: Number(item.properties?.harga),
+            harga_akhir: Number(item.properties?.harga_akhir),
           },
           detail: user,
         },
-        token
+        token,
       );
       if (res.status == 200) {
         window.location.href = res.data.redirect_url;
@@ -179,7 +179,7 @@ export default function RiwayatPembelian() {
             <button
               onClick={() =>
                 router.push(
-                  `${activeTab === "Program Utama" ? "/program-utama" : activeTab === "Tryout" ? "/tryout" : "/kelas-online"}`
+                  `${activeTab === "Program Utama" ? "/program-utama" : activeTab === "Tryout" ? "/tryout" : "/kelas-online"}`,
                 )
               }
               className="mt-4 px-4 py-2 text-xs font-semibold rounded-md bg-primary text-white hover:bg-primary/90 transition"
