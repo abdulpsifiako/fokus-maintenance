@@ -40,7 +40,7 @@ export default function TryOuts() {
       const res = await getProgramku(jenis, token);
       setDataProgram(res.data);
     },
-    [jenis, token]
+    [jenis, token],
   );
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function TryOuts() {
             })),
             kunci: s.kunci || "",
             pembahasan: s.pembahasan || "",
-          }))
+          })),
         );
 
         // Kembalikan data lengkap
@@ -88,6 +88,7 @@ export default function TryOuts() {
           datasoal: allSoal, // hasil gabungan semua soal
           questions: allSoal.length,
           status: oldData.properties?.status ?? true,
+          op_pembahasan: oldData.properties?.op_pembahasan ?? "",
         };
       };
 
@@ -103,7 +104,7 @@ export default function TryOuts() {
             status: "CREATED",
             program_name: item.properties.judul,
             to_data: item,
-          })
+          }),
         );
         dispatch(addDetailPurchased(res.data));
         dispatch(addDataSoalTO(item));
@@ -120,7 +121,7 @@ export default function TryOuts() {
             status: "CREATED",
             program_name: item.properties.judul,
             to_data: item,
-          })
+          }),
         );
         dispatch(addDetailPurchased(res.data));
         dispatch(addDataSoalTO(item));
@@ -139,13 +140,14 @@ export default function TryOuts() {
             status: "CREATED",
             program_name: item.properties.judul,
             to_data: item,
-          })
+          }),
         );
         dispatch(addDataLatihan(data));
         await router.push(`/detail-to/${item.id}`);
       }
     }
   };
+  console.log(dataProgram);
 
   return (
     <div className="landing-page font-poppins">

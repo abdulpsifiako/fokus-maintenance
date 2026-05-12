@@ -31,6 +31,7 @@ export default function TryOutForm({ mode, onBack, data }) {
     // startPremium: data?.properties?.startPremium ?? "",
     // endPremium: data?.properties?.endPremium ?? "",
     hargaPremium: data?.properties?.hargaPremium ?? "",
+    op_pembahasan: data?.properties?.op_pembahasan ?? "",
   });
 
   const handleChange = (e) => {
@@ -195,7 +196,7 @@ export default function TryOutForm({ mode, onBack, data }) {
   useEffect(() => {
     if (mode === "form-edit") {
       setPreview(
-        `${process.env.NEXT_PUBLIC_API_URL}/landing/images/${data?.properties.gambar}`
+        `${process.env.NEXT_PUBLIC_API_URL}/landing/images/${data?.properties.gambar}`,
       );
     }
   }, [mode, data]);
@@ -454,6 +455,16 @@ export default function TryOutForm({ mode, onBack, data }) {
               <div className="w-11 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-primary transition"></div>
               <div className="absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition peer-checked:translate-x-5"></div>
             </label>
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Pembahasan dibuka</label>
+            <input
+              name="op_pembahasan"
+              type="date"
+              value={form.op_pembahasan}
+              onChange={handleChange}
+              className="w-full border border-red-300 rounded-md p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+            />
           </div>
         </div>
       </div>

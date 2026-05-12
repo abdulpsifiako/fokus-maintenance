@@ -361,61 +361,79 @@ export default function DetailSummaryTO() {
                 />
               </button>
             </div>
+            {/* Overlay 1: Belum beli (isFreeTO) */}
             {detailPurchased.isFreeTO && (
               <div className="absolute inset-0 z-10 rounded-xl bg-gray-900/40 flex items-center justify-center">
                 <div className="text-center px-3 sm:px-5 max-w-[90%]">
-                  {/* ICON */}
                   <div className="flex justify-center mb-3 sm:mb-4">
-                    <Lock
-                      className="
-            text-white/90
-            w-[clamp(28px,6vw,56px)]
-            h-[clamp(28px,6vw,56px)]
-          "
-                    />
+                    <Lock className="text-white/90 w-[clamp(28px,6vw,56px)] h-[clamp(28px,6vw,56px)]" />
                   </div>
-
-                  {/* TITLE */}
-                  <p
-                    className="
-          text-white font-semibold
-          text-[clamp(12px,2.5vw,18px)]
-        "
-                  >
+                  <p className="text-white font-semibold text-[clamp(12px,2.5vw,18px)]">
                     Fitur ini dikunci
                   </p>
-
-                  {/* DESCRIPTION */}
-                  <p
-                    className="
-          text-white/80 mt-1
-          text-[clamp(10px,2vw,14px)]
-          leading-snug
-        "
-                  >
+                  <p className="text-white/80 mt-1 text-[clamp(10px,2vw,14px)] leading-snug">
                     Upgrade ke premium untuk menikmati semua fitur
                   </p>
-
-                  {/* CTA */}
                   <button
                     onClick={() => router.push(`/detail-to/${dataLatihan?.id}`)}
-                    className="
-          mt-3 sm:mt-4
-          px-[clamp(12px,3vw,24px)]
-          py-[clamp(6px,1.5vw,10px)]
-          bg-orange-500 hover:bg-orange-600
-          text-white font-semibold
-          text-[clamp(10px,2vw,14px)]
-          rounded-md
-          shadow-md
-          transition
-        "
+                    className="mt-3 sm:mt-4 px-[clamp(12px,3vw,24px)] py-[clamp(6px,1.5vw,10px)]
+          bg-orange-500 hover:bg-orange-600 text-white font-semibold
+          text-[clamp(10px,2vw,14px)] rounded-md shadow-md transition"
                   >
                     Upgrade Sekarang
                   </button>
                 </div>
               </div>
             )}
+
+            {/* Overlay 2: Pembahasan belum dibuka (hanya jika bukan isFreeTO) */}
+            {!detailPurchased.isFreeTO &&
+              dataLatihan?.op_pembahasan &&
+              dataLatihan.op_pembahasan !== "" &&
+              new Date() < new Date(dataLatihan.op_pembahasan) && (
+                <div
+                  className="absolute inset-0 z-10 rounded-xl bg-gray-900/40
+      flex items-center justify-center"
+                >
+                  <div className="text-center px-3 sm:px-5 max-w-[90%]">
+                    {/* Icon kalender */}
+                    <div className="flex justify-center mb-3 sm:mb-4">
+                      <svg
+                        className="text-white/90 w-[clamp(28px,6vw,56px)] h-[clamp(28px,6vw,56px)]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0
+              002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+
+                    <p className="text-white font-semibold text-[clamp(12px,2.5vw,18px)]">
+                      Pembahasan Belum Dibuka
+                    </p>
+
+                    <p className="text-white/80 mt-1 text-[clamp(10px,2vw,14px)] leading-snug">
+                      Akan dibuka pada{" "}
+                      <span className="font-semibold text-orange-300">
+                        {new Date(dataLatihan.op_pembahasan).toLocaleDateString(
+                          "id-ID",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          },
+                        )}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
           </div>
 
           {/* Panel Nilai */}
