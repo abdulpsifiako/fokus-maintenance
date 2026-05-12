@@ -6,6 +6,7 @@ const transaksiModel = conndb.getRepository(
   require("../entities/transaksiProgramEntity"),
 );
 const redeemModel = conndb.getRepository(require("../entities/reedemEntity"));
+const userModel = conndb.getRepository(require("../entities/usersEntity"));
 
 module.exports = {
   createTransaksiTO: async (req, res) => {
@@ -569,9 +570,7 @@ module.exports = {
       Object.assign(transaksi, updateData);
       await transaksiModel.save(transaksi);
 
-      // ✅ Hapus transaksi lain yang bukan success
-      // dengan user_id, jenis, program_id yang sama
-      // tapi bukan transaksi yang baru saja diupdate (id berbeda)
+      /** ✅ Hapus transaksi lain yang bukan success */
       if (status === "success") {
         await transaksiModel
           .createQueryBuilder()
@@ -582,10 +581,52 @@ module.exports = {
             program_id: transaksi.program_id,
           })
           .andWhere("status != :status", { status: "success" })
-          .andWhere("id != :id", { id: transaksi.id }) // jangan hapus yang baru sukses
+          .andWhere("id != :id", { id: transaksi.id })
           .execute();
-      }
 
+        // ✅ Simpan ke redeem_code jika pakai referal
+        try {
+          // jsonb sudah jadi object langsung — tidak perlu JSON.parse
+          const props = transaksi.properties;
+          const voucherCode = props?.voucherCode;
+          const tipe = props?.tipe;
+
+          if (voucherCode && tipe === "REFERAL") {
+            // Cari user pemilik kode referal
+            const userPemilik = await userModel.findOne({
+              where: { referal: voucherCode },
+            });
+
+            // Cari redeem_code by kode
+            let redeemData = await redeemModel.findOne({
+              where: { kode: voucherCode, is_deleted: false },
+            });
+
+            if (!redeemData) {
+              // Belum ada — buat baru
+              redeemData = redeemModel.create({
+                kode: voucherCode,
+                nama: userPemilik?.name || null,
+                email: userPemilik?.email || null,
+                detail_user: userPemilik || null,
+                jumlah_total: 1,
+                jumlah_pengajuan: 0,
+                sisa: 0,
+                status: "aktif",
+                created_at: new Date(),
+              });
+            } else {
+              // Sudah ada — increment
+              redeemData.jumlah_total = (redeemData.jumlah_total || 0) + 1;
+              redeemData.updated_at = new Date();
+            }
+
+            await redeemRepo.save(redeemData);
+          }
+        } catch (redeemErr) {
+          console.error("Redeem code error:", redeemErr);
+        }
+      }
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error("Notification error:", error);
