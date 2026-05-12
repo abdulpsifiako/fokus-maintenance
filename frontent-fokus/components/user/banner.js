@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import VideoPlayer from "./videoplayer";
 import { getImgBanner } from "@/lib/axios/landing";
 import Cookies from "js-cookie";
 import Image from "next/image";
@@ -20,80 +19,50 @@ export default function Banner({ onExploreClick, onPaketClick }) {
   }, []);
 
   return (
-    <section
-      className="relative flex items-center justify-center
-      font-poppins min-h-[480px] sm:min-h-[560px] lg:min-h-[720px]"
-    >
-      {/* Background image */}
-      <Image
-        src={imgBanner || "/footerBg.png"}
-        alt="Banner FokusEdu"
-        fill
-        priority
-        className="object-cover object-center"
-        sizes="100vw"
-      />
+    <section className="relative w-full font-poppins">
+      {/* ✅ Pakai next/image dengan width & height asli — tidak ada yang terpotong */}
+      <div className="relative w-full">
+        <Image
+          src={imgBanner || "/footerBg.png"}
+          alt="Banner FokusEdu"
+          width={1920}
+          height={600} // ✅ sesuaikan dengan tinggi asli gambar banner kamu
+          priority
+          className="w-full h-auto object-contain"
+          sizes="100vw"
+        />
 
-      {/* ✅ FIX 1: Overlay gradient — pakai bg-gradient-to-r bukan bg-linier-to-r */}
-      <div
-        className="absolute inset-0 bg-gradient-to-r
-        from-white/90 via-white/80 to-white/30
-        lg:from-white/95 lg:via-white/85 lg:to-transparent z-0"
-      />
-
-      {/* Konten utama */}
-      <div
-        className="relative z-10 flex flex-col lg:flex-row
-        items-center justify-between gap-8
-        w-full max-w-7xl px-5 sm:px-8 lg:px-12
-        py-12 sm:py-16 lg:py-20"
-      >
-        {/* Teks & Tombol */}
+        {/* Tombol — pojok bawah kiri, hidden di mobile */}
         <div
-          className="w-full lg:w-1/2 flex flex-col
-          items-center lg:items-start
-          text-center lg:text-left gap-6"
+          className="absolute bottom-4 left-4 sm:bottom-24 sm:left-24
+          z-10 hidden sm:flex flex-row gap-3"
         >
-          {/* Slot konten teks — isi sesuai kebutuhan */}
-          <div className="space-y-3">
-            {/* <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">...</h1> */}
-            {/* <p className="text-sm sm:text-base text-gray-600">...</p> */}
-          </div>
-
-          {/* Tombol */}
           {!token ? (
-            <div
-              className="flex flex-col sm:flex-row gap-3 w-full
-              sm:w-auto justify-center lg:justify-start"
-            >
+            <>
               <button
                 onClick={() => (window.location.href = "/auth/daftar")}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-md
-                  text-sm sm:text-base font-semibold text-white
-                  bg-primary hover:bg-primary/80 transition-all"
+                className="px-6 py-2.5 rounded-md text-sm font-semibold
+                  text-white bg-primary hover:bg-primary/80 transition-all
+                  shadow-md"
               >
                 Daftar Sekarang
               </button>
               <button
                 onClick={onExploreClick}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-md
-                  text-sm sm:text-base font-semibold
-                  border border-primary text-primary
-                  hover:bg-primary hover:text-white transition-all"
+                className="px-6 py-2.5 rounded-md text-sm font-semibold
+                  border border-primary text-primary bg-white/80
+                  hover:bg-primary hover:text-white transition-all shadow-md"
               >
                 Jelajahi Program
               </button>
-            </div>
+            </>
           ) : (
-            <div
-              className="flex flex-col sm:flex-row gap-3 w-full
-              sm:w-auto justify-center lg:justify-start"
-            >
+            <>
               <button
                 onClick={onPaketClick}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-md
-                  text-sm sm:text-base font-semibold text-white
-                  bg-primary hover:bg-primary/80 transition-all"
+                className="px-6 py-2.5 rounded-md text-sm font-semibold
+                  text-white bg-primary hover:bg-primary/80 transition-all
+                  shadow-md"
               >
                 Langganan
               </button>
@@ -101,25 +70,14 @@ export default function Banner({ onExploreClick, onPaketClick }) {
                 onClick={() =>
                   window.open("https://wa.me/6285183026569", "_blank")
                 }
-                className="w-full sm:w-auto px-6 py-2.5 rounded-md
-                  text-sm sm:text-base font-semibold
-                  border border-primary text-primary
-                  hover:bg-primary hover:text-white transition-all"
+                className="px-6 py-2.5 rounded-md text-sm font-semibold
+                  border border-primary text-primary bg-white/80
+                  hover:bg-primary hover:text-white transition-all shadow-md"
               >
                 Masih ragu? Tanya admin
               </button>
-            </div>
+            </>
           )}
-        </div>
-
-        {/* ✅ FIX 2: VideoPlayer dirender, bukan div kosong */}
-        <div className="w-full lg:w-1/2 flex justify-center">
-          <div
-            className="w-full max-w-[480px] sm:max-w-[520px]
-            rounded-xl overflow-hidden shadow-lg"
-          >
-            {/* <VideoPlayer /> */}
-          </div>
         </div>
       </div>
     </section>

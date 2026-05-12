@@ -48,7 +48,6 @@ export default function Testimoni() {
 
     fetchTestimonials();
   }, [page, search, sortBy]);
-  // ⚠️ sengaja tidak include limit — nilainya tidak pernah berubah
 
   // ✅ FIX 3: Reset ke page 1 saat search/sort berubah
   useEffect(() => {
