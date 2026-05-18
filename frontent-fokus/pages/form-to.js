@@ -11,6 +11,7 @@ export default function FormUploadGratis() {
   const token = Cookies.get("token");
   const router = useRouter();
   const datTransaksi = useSelector((state) => state.transaksi.program_utama);
+  const dataLatihanTO = useSelector((state) => state.tryout.dataLatihan);
   const [files, setFiles] = useState({
     follow: null,
     komentar: null,
@@ -105,7 +106,11 @@ export default function FormUploadGratis() {
         </li>
         <li>
           Komentar dan tag 5 teman kamu di{" "}
-          <a href="#" className="text-blue-600 underline">
+          <a
+            href={`${dataLatihanTO.link}`}
+            target="_blank"
+            className="text-blue-600 underline"
+          >
             Postingan ini
           </a>
         </li>

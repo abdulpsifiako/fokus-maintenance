@@ -34,6 +34,7 @@ export default function ModulDetail({
   historyVideo,
   activeTab,
   setActiveTab,
+  handleNewBeliAkses,
 }) {
   const [alert, setAlert] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -567,7 +568,7 @@ export default function ModulDetail({
               <button
                 onClick={() => {
                   setShowModal(false);
-                  handleBeliAkses();
+                  handleNewBeliAkses();
                 }}
                 className="px-4 py-2 text-xs font-semibold rounded bg-primary text-white"
               >
@@ -578,11 +579,11 @@ export default function ModulDetail({
         </div>
       )}
       <LoadingModal show={loadingPage} />
-      <PaymentModal
+      {/* <PaymentModal
         open={openModal}
         onClose={() => setOpenModal(false)}
         paymentData={paymentData}
-      />
+      /> */}
       {alert && (
         <Alert
           type={alert.type}

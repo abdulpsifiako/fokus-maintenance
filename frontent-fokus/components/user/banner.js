@@ -12,7 +12,8 @@ export default function Banner({ onExploreClick, onPaketClick }) {
       try {
         const response = await getImgBanner();
         setImgBanner(
-          `${process.env.NEXT_PUBLIC_API_URL}/landing/images/${response.data[0].url}`,
+          `https://api.fokusedu.id/api/landing/images/05ab869b-6851-4d1c-be70-d1912afb1c19.webp`,
+          // `${process.env.NEXT_PUBLIC_API_URL}/landing/images/${response.data[0].url}`,
         );
       } catch (error) {}
     })();
@@ -31,10 +32,21 @@ export default function Banner({ onExploreClick, onPaketClick }) {
           className="w-full h-auto object-contain"
           sizes="100vw"
         />
-
+        {!token && (
+          <div className="w-full flex justify-center">
+            <button
+              onClick={() => (window.location.href = "/auth/daftar")}
+              className="px-6 py-2.5 rounded-md text-sm font-semibold
+                  text-white bg-primary hover:bg-primary/80 transition-all my-4
+                  shadow-md sm:hidden"
+            >
+              Daftar Sekarang
+            </button>
+          </div>
+        )}
         {/* Tombol — pojok bawah kiri, hidden di mobile */}
         <div
-          className="absolute bottom-4 left-4 sm:bottom-24 sm:left-24
+          className="absolute bottom-4 left-4 md:bottom-24 md:left-14 lg:bottom-44 lg:left-24
           z-10 hidden sm:flex flex-row gap-3"
         >
           {!token ? (

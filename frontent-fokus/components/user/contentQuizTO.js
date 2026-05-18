@@ -3,6 +3,8 @@ import ModalAkhiriUjian from "./modalAkhiriUjian";
 import { useEffect, useState } from "react";
 import ModalLaporkanSoal from "./laporkanSoal";
 import ModalAkhiriUjianTO from "./modalAkhiriUjianTO";
+import useExitWarning from "@/pages/hooks/useExitWarning";
+import ModalKeluarUjian from "./modalKeluarUjian";
 
 export default function ContentQuizTO({
   dataSoal,
@@ -51,7 +53,7 @@ export default function ContentQuizTO({
   const handleMark = () => {
     const num = currentIndex;
     setMarked((prev) =>
-      prev.includes(num) ? prev.filter((x) => x !== num) : [...prev, num]
+      prev.includes(num) ? prev.filter((x) => x !== num) : [...prev, num],
     );
   };
 
@@ -66,6 +68,8 @@ export default function ContentQuizTO({
       setCurrentIndex((i) => i - 1);
     }
   };
+
+  const { showModal, handleStay, handleLeave } = useExitWarning(true);
 
   return (
     <div className="space-y-4">
@@ -125,7 +129,7 @@ export default function ContentQuizTO({
                     />
                   </label>
                 );
-              }
+              },
             )}
           </div>
 
@@ -206,6 +210,9 @@ export default function ContentQuizTO({
           soalId={currentSoal?.id}
           nomorSoal={currentIndex + 1}
         />
+      )}
+      {showModal && (
+        <ModalKeluarUjian onStay={handleStay} onLeave={handleLeave} />
       )}
     </div>
   );

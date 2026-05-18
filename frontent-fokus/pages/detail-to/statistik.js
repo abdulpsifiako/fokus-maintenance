@@ -23,7 +23,7 @@ export default function PageTO() {
       } else {
         res = await getPembahasan(
           { program_id: programId, jenis, title },
-          token
+          token,
         );
       }
       setData(res.data);

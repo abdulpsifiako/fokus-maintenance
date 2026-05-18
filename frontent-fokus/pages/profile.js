@@ -6,11 +6,13 @@ import Cookies from "js-cookie";
 import Alert from "@/components/public/alert";
 import { updateProfile, uploadFileUser } from "@/lib/axios/profile";
 import { updateDetail } from "@/lib/redux/store/userSlice";
+import { useRouter } from "next/router";
 
 export default function Profil() {
   const dispatch = useDispatch();
   const [alert, setAlert] = useState(null);
   const token = Cookies.get("token");
+  const router = useRouter();
   const detail = useSelector((state) => state.user.detail);
   const [provinsiList, setProvinsiList] = useState([]);
   const [kabKotaList, setKabKotaList] = useState([]);
@@ -95,6 +97,7 @@ export default function Profil() {
         });
       }
       dispatch(updateDetail(data));
+      router.push("/");
       return;
     } catch (error) {
       const res = error.response.data;

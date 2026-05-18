@@ -15,7 +15,7 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 export default function StatistikNilaiChartTO({ data, maxValue }) {
@@ -136,7 +136,7 @@ export default function StatistikNilaiChartTO({ data, maxValue }) {
           maxValue ||
           Math.max(
             ...hasilMateri.map((i) => i.maxPoin),
-            ...hasilSubmateri.map((i) => i.maxPoin)
+            ...hasilSubmateri.map((i) => i.maxPoin),
           ) + 30,
         ticks: { stepSize: 5 },
       },
@@ -147,20 +147,30 @@ export default function StatistikNilaiChartTO({ data, maxValue }) {
     },
   };
 
+  // Hitung tinggi dinamis — per item sekitar 40px + padding
+  const heightSubmateri = Math.max(400, hasilSubmateri.length * 45 + 80);
+  const heightMateri = Math.max(400, hasilMateri.length * 45 + 80);
+
   return (
     <div className="bg-white w-full shadow p-2 rounded-md space-y-8">
-      <div className="h-[400px]">
+      <div>
         <h2 className="text-lg font-semibold text-primary mb-2">
           Statistik Berdasarkan Sub Materi
         </h2>
-        <Bar data={chartDataSubmateri} options={options} />
+        {/* ✅ tinggi dinamis */}
+        <div style={{ height: heightSubmateri }}>
+          <Bar data={chartDataSubmateri} options={options} />
+        </div>
       </div>
 
-      <div className="h-[400px]">
+      <div>
         <h2 className="text-lg font-semibold text-primary mb-2">
           Statistik Berdasarkan Materi
         </h2>
-        <Bar data={chartDataMateri} options={options} />
+        {/* ✅ tinggi dinamis */}
+        <div style={{ height: heightMateri }}>
+          <Bar data={chartDataMateri} options={options} />
+        </div>
       </div>
     </div>
   );

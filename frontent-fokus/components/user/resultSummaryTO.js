@@ -42,7 +42,7 @@ export default function ResultSummaryTO({ dataSoal, skor }) {
   // 🔹 Total minimal poin lulus
   const minPoin = passingPerMateri.reduce(
     (total, m) => total + m.passing_grade,
-    0
+    0,
   );
 
   const isLulus = Number(skor) >= Number(minPoin);
@@ -113,14 +113,15 @@ export default function ResultSummaryTO({ dataSoal, skor }) {
 
         <button
           onClick={() => {
-            router.push({
-              pathname: "/detail-to/pembahasan",
-              query: {
-                program_id: dataSoal.program_id,
-                jenis: dataSoal.jenis,
-                title: dataSoal.title,
-              },
-            });
+            // router.push({
+            //   pathname: "/detail-to/pembahasan",
+            //   query: {
+            //     program_id: dataSoal.program_id,
+            //     jenis: dataSoal.jenis,
+            //     title: dataSoal.title,
+            //   },
+            // });
+            router.push(`/detail-to/summary?id=${dataSoal.program_id}`);
           }}
           className="mt-6 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded text-sm font-semibold"
         >

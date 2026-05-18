@@ -132,7 +132,7 @@ const DataDiri = () => {
         }),
       );
       if (res.status == 200) {
-        router.push("/profile");
+        router.push("/");
       } else {
         return;
       }

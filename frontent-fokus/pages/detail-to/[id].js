@@ -78,7 +78,7 @@ export default function PaketTryout() {
     return d;
   };
 
-  //  //  console.log(datTransaksi);
+  console.log(datTransaksi);
   return (
     <div className="p-7 font-poppins my-7">
       {/* Header */}
@@ -93,36 +93,56 @@ export default function PaketTryout() {
 
             <div className="space-y-3">
               <div className="flex flex-col gap-4 text-xs">
-                {fiturList.map((item) => (
-                  <label
-                    key={item.name}
-                    className={`flex items-center gap-1 cursor-pointer ${detailPurchased?.isFreeTO == true && item.name == "Gratis" ? "hidden" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="paket"
-                      value={item.name}
-                      checked={paket === item.name}
-                      onChange={() => setPaket(item.name)}
-                    />
-                    {item.label}
-                  </label>
-                ))}
+                {fiturList.map((item) => {
+                  // ✅ Cek apakah tanggal gratis sudah lewat
+                  const endGratis =
+                    datTransaksi?.to_data?.properties?.endGratis;
+                  const isGratisExpired =
+                    endGratis && new Date() > new Date(endGratis);
+
+                  // Sembunyikan tombol "Gratis" jika:
+                  // 1. User sudah beli (isFreeTO) ATAU
+                  // 2. Tanggal endGratis sudah lewat
+                  const isHidden =
+                    item.name === "Gratis" &&
+                    (detailPurchased?.isFreeTO === true || isGratisExpired);
+
+                  return (
+                    <label
+                      key={item.name}
+                      className={`flex items-center gap-1 cursor-pointer ${isHidden ? "hidden" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="paket"
+                        value={item.name}
+                        checked={paket === item.name}
+                        onChange={() => setPaket(item.name)}
+                      />
+                      {item.label}
+                    </label>
+                  );
+                })}
               </div>
 
               {paket && (
                 <div className="text-xs">
                   {(() => {
                     const selected = fiturList.find((f) => f.name === paket);
+                    const endGratis = detailSoal?.properties?.endGratis;
+                    const isGratisExpired =
+                      endGratis && new Date() > new Date(endGratis);
+
+                    // Sembunyikan harga Rp 0 jika paket Gratis & sudah expired
+                    if (paket === "Gratis" && isGratisExpired) return null;
+
                     return (
-                      <>
-                        <p className="font-semibold">
-                          Harga:{" "}
-                          {selected?.harga === 0
-                            ? "Rp 0"
-                            : `Rp ${selected?.harga.toLocaleString("id-ID")}`}
-                        </p>
-                      </>
+                      <p className="font-semibold">
+                        Harga:{" "}
+                        {selected?.harga === 0
+                          ? "Rp 0"
+                          : `Rp ${selected?.harga.toLocaleString("id-ID")}`}
+                      </p>
                     );
                   })()}
                 </div>
@@ -154,7 +174,7 @@ export default function PaketTryout() {
                       const start = normalizeDate(detailPurchased?.toStart);
                       const today = normalizeDate(new Date());
                       const diffDays = Math.round(
-                        (start - today) / (1000 * 60 * 60 * 24)
+                        (start - today) / (1000 * 60 * 60 * 24),
                       );
                       return `Bisa dikerjakan dalam ${diffDays} hari lagi`;
                     })()
@@ -189,95 +209,110 @@ export default function PaketTryout() {
             >
               {paket === "Premium" ? "Beli" : "Daftar"} Sekarang
             </button> */}
-            {!hideBeliButton && (
-              <button
-                type="button"
-                onClick={async () => {
-                  setLoadingPage(true);
+            {(() => {
+              const endGratis = detailSoal?.properties?.endGratis;
+              const isGratisExpired =
+                endGratis && new Date() > new Date(endGratis);
 
-                  if (paket === "Gratis") {
-                    dispatch(addNewPropertiesTransaksi({ harga: 0 }));
-                    router.push("/form-to");
-                  } else if (
-                    paket === "Premium" &&
-                    detailSoal?.properties?.hargaPremium > 0
-                  ) {
-                    try {
-                      const res = await createSnapTransaksi(
-                        {
-                          data_transaksi: {
-                            ...datTransaksi,
-                            harga: Number(detailSoal?.properties?.hargaPremium),
-                            harga_akhir: Number(
-                              detailSoal?.properties?.hargaPremium
-                            ),
-                          },
-                          detail: dataUser,
-                        },
-                        token
-                      );
-                      if (res.status == 200) {
-                        setPaymentData(res.data.redirect_url);
-                        setLoadingPage(false);
-                        setOpenModal(true);
-                      } else {
-                        setLoadingPage(false);
-                        setAlert({
-                          type: "error",
-                          title: "Info",
-                          message: "Gagal membuat transaksi",
-                        });
-                        return;
+              // Sembunyikan button jika:
+              // hideBeliButton ATAU (paket Gratis && endGratis sudah lewat)
+              const shouldHide =
+                hideBeliButton || (paket === "Gratis" && isGratisExpired);
+
+              return (
+                !shouldHide && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setLoadingPage(true);
+
+                      if (paket === "Gratis") {
+                        dispatch(addNewPropertiesTransaksi({ harga: 0 }));
+                        router.push("/form-to");
+                      } else if (
+                        paket === "Premium" &&
+                        detailSoal?.properties?.hargaPremium > 0
+                      ) {
+                        try {
+                          const res = await createSnapTransaksi(
+                            {
+                              data_transaksi: {
+                                ...datTransaksi,
+                                harga: Number(
+                                  detailSoal?.properties?.hargaPremium,
+                                ),
+                                harga_akhir: Number(
+                                  detailSoal?.properties?.hargaPremium,
+                                ),
+                              },
+                              detail: dataUser,
+                            },
+                            token,
+                          );
+                          if (res.status == 200) {
+                            setPaymentData(res.data.redirect_url);
+                            setLoadingPage(false);
+                            setOpenModal(true);
+                          } else {
+                            setLoadingPage(false);
+                            setAlert({
+                              type: "error",
+                              title: "Info",
+                              message: "Gagal membuat transaksi",
+                            });
+                            return;
+                          }
+                        } catch (error) {
+                          setLoadingPage(false);
+                          setAlert({
+                            type: "error",
+                            title: "Info",
+                            message: "Gagal membuat transaksi",
+                          });
+                          return;
+                        }
+                      } else if (
+                        paket === "Premium" &&
+                        detailSoal?.properties?.hargaPremium < 1
+                      ) {
+                        try {
+                          const res = await freeTOPremium(
+                            {
+                              data_transaksi: {
+                                ...datTransaksi,
+                                harga: 0,
+                                harga_akhir: 0,
+                              },
+                            },
+                            token,
+                          );
+                          if (res.status == 200) {
+                            setLoadingPage(false);
+                            setAlert({
+                              type: "success",
+                              title: "Info",
+                              message: "Sukses menambahkan Tryout",
+                            });
+                            router.push("/pembelian");
+                          }
+                        } catch (error) {
+                          setLoadingPage(false);
+                          setAlert({
+                            type: "error",
+                            title: "Info",
+                            message: "Gagal membuat transaksi",
+                          });
+                          return;
+                        }
                       }
-                    } catch (error) {
-                      setLoadingPage(false);
-                      setAlert({
-                        type: "error",
-                        title: "Info",
-                        message: "Gagal membuat transaksi",
-                      });
-                      return;
-                    }
-                  } else if (
-                    paket === "Premium" &&
-                    detailSoal?.properties?.hargaPremium < 1
-                  ) {
-                    try {
-                      const res = await freeTOPremium(
-                        {
-                          data_transaksi: {
-                            ...datTransaksi,
-                            harga: 0,
-                            harga_akhir: 0,
-                          },
-                        },
-                        token
-                      );
-                      if (res.status == 200) {
-                        setLoadingPage(false);
-                        setAlert({
-                          type: "success",
-                          title: "Info",
-                          message: "Sukses menambahkan Tryout",
-                        });
-                        router.push("/pembelian");
-                      }
-                    } catch (error) {
-                      setLoadingPage(false);
-                      setAlert({
-                        type: "error",
-                        title: "Info",
-                        message: "Gagal membuat transaksi",
-                      });
-                      return;
-                    }
-                  }
-                }}
-                className="mt-2 bg-red-700 text-white px-4 py-2 rounded-md text-xs"
-              >
-                {paket === "Premium" ? "Beli" : "Daftar"} Sekarang
-              </button>
-            )}
+                    }}
+                    className="mt-2 bg-red-700 text-white px-4 py-2 rounded-md text-xs"
+                  >
+                    {paket === "Premium" ? "Beli" : "Daftar"} Sekarang
+                  </button>
+                )
+              );
+            })()}
           </div>
         </div>
 

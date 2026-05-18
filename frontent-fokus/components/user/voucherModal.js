@@ -47,7 +47,7 @@ export default function VoucherModal({ harga, onClose, onLanjut }) {
       harga_akhir: result ? harga - result.nilai : harga,
       voucherCode: result ? kode : "",
       potongan: result ? result.nilai : 0,
-      tipe: result.tipe,
+      tipe: result?.tipe ?? "",
     });
   };
   return (
@@ -172,7 +172,11 @@ export default function VoucherModal({ harga, onClose, onLanjut }) {
               Tidak punya voucher?{" "}
               <button
                 onClick={() =>
-                  onLanjut({ harga_akhir: harga, voucherCode: "", potongan: 0 })
+                  onLanjut({
+                    harga_akhir: harga,
+                    voucherCode: "",
+                    potongan: 0,
+                  })
                 }
                 className="text-primary underline"
               >

@@ -385,6 +385,7 @@ export default function VideoFokusEdu() {
             setActiveTab={setActiveTab}
             harga={data?.properties?.harga}
             durasi={data?.properties?.durasi}
+            handleNewBeliAkses={handleBeliAkses}
           />
         </div>
       </div>

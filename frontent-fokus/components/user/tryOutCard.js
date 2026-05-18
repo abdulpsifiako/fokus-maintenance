@@ -36,7 +36,7 @@ export default function TryoutCard({ filterBar, search, filter }) {
         search,
         filter,
         null,
-        filterBar === "Semua" ? "" : filterBar
+        filterBar === "Semua" ? "" : filterBar,
       );
       if (res.status === 200) {
         setData(res.data);
@@ -55,47 +55,48 @@ export default function TryoutCard({ filterBar, search, filter }) {
       router.push("/auth/login");
       return;
     }
+
+    // ✅ Pindah ke luar try-catch agar bisa diakses di catch
+    const transformData = (oldData) => {
+      const allSoal = (oldData.properties?.materi || []).flatMap((m) =>
+        (m.data_soal || []).map((s) => ({
+          nama_materi: m.nama || "",
+          sub_materi: m.submateri || "",
+          passing_grade: m.passing || "",
+          pertanyaan: s.pertanyaan || "",
+          opsi: (s.opsi || []).map((o) => ({
+            text: o.text || "",
+            poin: o.poin || 0,
+          })),
+          kunci: s.kunci || "",
+          pembahasan: s.pembahasan || "",
+        })),
+      );
+
+      return {
+        id: oldData.id || null,
+        jenis: "Tryout",
+        module_name: oldData.properties?.judul || "",
+        program_utama: oldData.properties?.judul || "",
+        title: oldData.properties?.judul || "",
+        program_id: oldData.id,
+        jenis_program: oldData.properties?.jenis || "",
+        kategori: Array.isArray(oldData.properties?.fitur)
+          ? oldData.properties.fitur.join(", ")
+          : oldData.properties?.fitur || "",
+        waktu: oldData.properties?.waktu || "",
+        datasoal: allSoal,
+        questions: allSoal.length,
+        status: oldData.properties?.status ?? true,
+        link: oldData.properties?.link ?? "",
+      };
+    };
+
+    // ✅ Deklarasi data di luar try-catch
+    const data = transformData(item);
+
     try {
       const res = await cekTryout(item.id, token, "Tryout");
-
-      const transformData = (oldData) => {
-        // Gabungkan semua soal dari tiap materi
-        const allSoal = (oldData.properties?.materi || []).flatMap((m) =>
-          (m.data_soal || []).map((s) => ({
-            nama_materi: m.nama || "",
-            sub_materi: m.submateri || "",
-            passing_grade: m.passing || "",
-            pertanyaan: s.pertanyaan || "",
-            opsi: (s.opsi || []).map((o) => ({
-              text: o.text || "",
-              poin: o.poin || 0,
-            })),
-            kunci: s.kunci || "",
-            pembahasan: s.pembahasan || "",
-          }))
-        );
-
-        // Kembalikan data lengkap
-        return {
-          id: oldData.id || null,
-          jenis: "Tryout",
-          module_name: oldData.properties?.judul || "",
-          program_utama: oldData.properties?.judul || "",
-          title: oldData.properties?.judul || "",
-          program_id: oldData.id,
-          jenis_program: oldData.properties?.jenis || "",
-          kategori: Array.isArray(oldData.properties?.fitur)
-            ? oldData.properties.fitur.join(", ")
-            : oldData.properties?.fitur || "",
-          waktu: oldData.properties?.waktu || "",
-          datasoal: allSoal, // hasil gabungan semua soal
-          questions: allSoal.length,
-          status: oldData.properties?.status ?? true,
-        };
-      };
-
-      // Transformasikan datanya
-      const data = transformData(item);
 
       if (res.data.isFreeTO && res.data.isPurchase) {
         dispatch(
@@ -106,11 +107,11 @@ export default function TryoutCard({ filterBar, search, filter }) {
             status: "CREATED",
             program_name: item.properties.judul,
             to_data: item,
-          })
+          }),
         );
         dispatch(addDetailPurchased(res.data));
         dispatch(addDataSoalTO(item));
-        dispatch(addDataLatihan(data));
+        dispatch(addDataLatihan(data)); // ✅ bisa diakses
         await router.push(`/detail-to/${item.id}`);
       }
 
@@ -123,11 +124,11 @@ export default function TryoutCard({ filterBar, search, filter }) {
             status: "CREATED",
             program_name: item.properties.judul,
             to_data: item,
-          })
+          }),
         );
         dispatch(addDetailPurchased(res.data));
         dispatch(addDataSoalTO(item));
-        dispatch(addDataLatihan(data));
+        dispatch(addDataLatihan(data)); // ✅ bisa diakses
         await router.push(`/detail-to/summary?id=${item.id}`);
       }
     } catch (error) {
@@ -142,9 +143,9 @@ export default function TryoutCard({ filterBar, search, filter }) {
             status: "CREATED",
             program_name: item.properties.judul,
             to_data: item,
-          })
+          }),
         );
-        dispatch(addDataLatihan(data));
+        dispatch(addDataLatihan(data)); // ✅ sekarang bisa diakses di catch
         await router.push(`/detail-to/${item.id}`);
       }
     }
@@ -208,7 +209,7 @@ export default function TryoutCard({ filterBar, search, filter }) {
                     <LuNotepadText />{" "}
                     {card.properties.materi.reduce(
                       (total, m) => total + (m.data_soal?.length || 0),
-                      0
+                      0,
                     )}{" "}
                     Soal
                   </div>
