@@ -39,6 +39,7 @@ route.post(
 route.get("/pengalaman", pengalamanController.getPengalamanPosts);
 route.get("/info/latest", infoController.getLatestInfo);
 route.post("/info/add", infoController.addInfo);
+route.patch("/info/status", infoController.updateInfoStatus);
 route.get("/pengalaman/all", pengalamanController.getAllPengalaman);
 route.post(
   "/update/pengalaman/:id",
