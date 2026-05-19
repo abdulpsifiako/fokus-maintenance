@@ -12,8 +12,8 @@ export default function Banner({ onExploreClick, onPaketClick }) {
       try {
         const response = await getImgBanner();
         setImgBanner(
-          `https://api.fokusedu.id/api/landing/images/05ab869b-6851-4d1c-be70-d1912afb1c19.webp`,
-          // `${process.env.NEXT_PUBLIC_API_URL}/landing/images/${response.data[0].url}`,
+          // `https://api.fokusedu.id/api/landing/images/05ab869b-6851-4d1c-be70-d1912afb1c19.webp`,
+          `${process.env.NEXT_PUBLIC_API_URL}/landing/images/${response.data[0].url}`,
         );
       } catch (error) {}
     })();

@@ -148,3 +148,11 @@ export async function getLatestInfo() {
   const response = await axios.get("/landing/info/latest");
   return response.data;
 }
+
+// lib/axios/info.js
+export async function updateInfoStatus(body, token) {
+  const response = await axios.patch("/landing/info/status", body, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+}

@@ -12,6 +12,7 @@ import {
   addKenaliKami,
   addTermsCondition,
   getLatestInfo,
+  updateInfoStatus,
   uploadFile,
 } from "@/lib/axios/landing";
 import Alert from "@/components/public/alert";
@@ -30,6 +31,7 @@ function LandingPageTabs() {
   const [igFile, setIgFile] = useState(null);
   const [priviewIgFIle, setPriviewIgFile] = useState(null);
   const [infoTerakhir, setInfoTerakhir] = useState(null);
+  const [togglingStatus, setTogglingStatus] = useState(false);
   const [form, setForm] = useState({
     judul: "",
     link: "",
@@ -40,6 +42,7 @@ function LandingPageTabs() {
     deskripsi: "",
     tanggal: "",
     link: "",
+    status: false,
   });
   const tabs = [
     { id: "info", label: "Info Landing Page" },
@@ -112,6 +115,28 @@ function LandingPageTabs() {
       setIgFile(null);
       setPriviewIgFile(null);
       return;
+    }
+  };
+  const handleToggleStatus = async () => {
+    if (!infoTerakhir) return;
+    setTogglingStatus(true);
+    try {
+      const res = await updateInfoStatus(
+        { id: infoTerakhir.id, status: !infoTerakhir.status },
+        token,
+      );
+      if (res.status === 200) {
+        setInfoTerakhir((prev) => ({ ...prev, status: !prev.status }));
+        setAlert({ type: "success", title: "Info", message: res.message });
+      }
+    } catch (error) {
+      setAlert({
+        type: "error",
+        title: "Info",
+        message: "Gagal update status",
+      });
+    } finally {
+      setTogglingStatus(false);
     }
   };
   const handleTermNCondition = async () => {
@@ -187,7 +212,13 @@ function LandingPageTabs() {
       if (res.status === 200) {
         setAlert({ type: "success", title: "Info", message: res.message });
         setInfoTerakhir(res.data);
-        setFormInfo({ judul: "", deskripsi: "", tanggal: "", link: "" });
+        setFormInfo({
+          judul: "",
+          deskripsi: "",
+          tanggal: "",
+          link: "",
+          status: false,
+        });
       }
     } catch (error) {
       setAlert({
@@ -553,12 +584,60 @@ function LandingPageTabs() {
           </h3>
 
           {/* Info terakhir */}
-          {infoTerakhir && (
+          {/* {infoTerakhir && (
             <div
               className="bg-[#fae9e7] border border-[#cb1e0e]/20
         rounded-lg p-4 text-sm mb-2"
             >
               <p className="text-xs text-gray-500 mb-1">Info terakhir:</p>
+              <p className="font-semibold text-[#cb1e0e]">
+                {infoTerakhir.judul}
+              </p>
+              <p className="text-gray-600 text-xs mt-1">
+                {infoTerakhir.deskripsi}
+              </p>
+              {infoTerakhir.tanggal && (
+                <p className="text-gray-400 text-xs mt-1">
+                  📅{" "}
+                  {new Date(infoTerakhir.tanggal).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
+            </div>
+          )} */}
+          {infoTerakhir && (
+            <div className="bg-[#fae9e7] border border-[#cb1e0e]/20 rounded-lg p-4 text-sm mb-2">
+              {/* Header + Toggle */}
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500">Info terakhir:</p>
+
+                {/* ✅ Toggle status aktif/tidak aktif */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs font-medium ${infoTerakhir.status ? "text-green-600" : "text-gray-400"}`}
+                  >
+                    {infoTerakhir.status ? "Aktif" : "Tidak Aktif"}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={togglingStatus}
+                    onClick={handleToggleStatus}
+                    className={`relative w-10 h-5 rounded-full transition-all duration-200
+            ${infoTerakhir.status ? "bg-green-500" : "bg-gray-300"}
+            ${togglingStatus ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full
+            shadow transition-transform duration-200
+            ${infoTerakhir.status ? "translate-x-5" : "translate-x-0"}`}
+                    />
+                  </button>
+                </div>
+              </div>
+
               <p className="font-semibold text-[#cb1e0e]">
                 {infoTerakhir.judul}
               </p>
@@ -644,7 +723,7 @@ function LandingPageTabs() {
             type="button"
             onClick={handleAddInfo}
             className="bg-primary text-white px-5 py-2
-        rounded-md text-sm font-semibold hover:opacity-80 transition-all"
+        rounded-md text-sm font-semibold hover:opacity-80 transition-all mb-6"
           >
             Simpan Pengumuman
           </button>
