@@ -8,7 +8,7 @@ export default function Layout({ children }) {
       <Navigation />
 
       {/* konten utama fleksibel mengisi ruang */}
-      <main className="flex-1 border-x-transparent pt-17 sm:pt-16">
+      <main className="flex-1 border-x-transparent pt-20 md:pt-24">
         {children}
       </main>
 

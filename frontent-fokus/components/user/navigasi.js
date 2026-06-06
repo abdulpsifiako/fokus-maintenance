@@ -26,7 +26,6 @@ export default function Navigation() {
   const dropdownRef = useRef(null);
   const profileRef = useRef(null);
 
-  // fungsi highlight menu aktif
   const isActive = (path) => router.pathname === path;
 
   const toggleMenu = () => {
@@ -45,7 +44,6 @@ export default function Navigation() {
     setShowDropdown(false);
   };
 
-  // close dropdown ketika klik di luar
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (e.target.closest(".ignore-close")) return;
@@ -69,7 +67,6 @@ export default function Navigation() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDropdown, showProfile]);
 
-  // reset ketika screen berubah ke desktop
   useEffect(() => {
     if (["md", "lg", "xl", "2xl"].includes(breakpoint)) {
       setShowMenu(false);
@@ -95,7 +92,7 @@ export default function Navigation() {
   return (
     <>
       {/* MOBILE NAV */}
-      <div className="fixed top-0 left-0 w-full z-50 md:hidden bg-white shadow-sm border-b border-gray-200 p-3 flex justify-between items-center font-poppins">
+      <div className="fixed top-4 left-4 right-4 z-50 md:hidden bg-white/90 backdrop-blur-md shadow-lg rounded-2xl border border-gray-100 px-4 py-3 flex justify-between items-center font-poppins">
         <Link href="/">
           <Image src="/logo.png" alt="FokusEdu" height={100} width={150} />
         </Link>
@@ -108,7 +105,7 @@ export default function Navigation() {
       {showMenu && (
         <div
           ref={menuRef}
-          className="fixed top-14 left-0 w-full bg-white shadow-lg border-t border-gray-100 py-3 z-40 animate-fadeIn"
+          className="fixed top-20 left-4 right-4 bg-white/95 backdrop-blur-md shadow-xl rounded-2xl border border-gray-100 py-4 px-2 z-40 animate-fadeIn"
         >
           <ul className="text-center text-sm space-y-2 font-medium">
             <Link href="/program-utama" onClick={() => setShowMenu(false)}>
@@ -187,7 +184,7 @@ export default function Navigation() {
           </ul>
 
           {/* PROFILE */}
-          <div className=" text-sm text-center">
+          <div className="text-sm text-center">
             {detail ? (
               <>
                 <button
@@ -241,13 +238,13 @@ export default function Navigation() {
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => router.push("/auth/login")}
-                  className="px-4 py-1 border border-primary rounded-lg text-primary text-sm"
+                  className="px-4 py-1 border border-primary rounded-xl text-primary text-sm"
                 >
                   Masuk
                 </button>
                 <button
                   onClick={() => router.push("/auth/daftar")}
-                  className="px-4 py-1 bg-primary text-white rounded-lg text-sm"
+                  className="px-4 py-1 bg-primary text-white rounded-xl text-sm"
                 >
                   Daftar
                 </button>
@@ -258,9 +255,8 @@ export default function Navigation() {
       )}
 
       {/* DESKTOP NAV */}
-      {/* <div className="hidden md:flex fixed top-0 left-0 w-full max-w-[1440px] mx-auto bg-white shadow-sm border-b border-gray-200 z-50 px-8 py-4 items-center justify-between font-poppins"> */}
-      <div className="hidden md:flex fixed top-0 left-0 w-full bg-white shadow-sm border-b border-gray-200 z-50">
-        <div className="max-w-[1440px] mx-auto px-8 py-4 w-full flex items-center justify-between font-poppins">
+      <div className="hidden md:flex fixed top-4 left-4 right-4 z-50">
+        <div className="max-w-[1440px] mx-auto px-6 py-3 w-full flex items-center justify-between font-poppins bg-white/90 backdrop-blur-md shadow-md rounded-2xl border border-gray-100">
           <Link href="/">
             <Image
               src="/logo.png"
@@ -318,7 +314,7 @@ export default function Navigation() {
               </button>
 
               {showDropdown && (
-                <div className="absolute top-8 left-0 w-44 bg-white border border-gray-200 shadow-md rounded-md">
+                <div className="absolute top-10 left-0 w-44 bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden">
                   <ul className="text-sm text-gray-700">
                     {[
                       { href: "/kenali-kami", label: "Kenali Kami" },
@@ -369,13 +365,13 @@ export default function Navigation() {
               <div className="flex gap-3">
                 <button
                   onClick={() => router.push("/auth/login")}
-                  className="px-4 py-1 border border-primary rounded-lg text-primary text-sm"
+                  className="px-4 py-1 border border-primary rounded-xl text-primary text-sm"
                 >
                   Masuk
                 </button>
                 <button
                   onClick={() => router.push("/auth/daftar")}
-                  className="px-4 py-1 bg-primary text-white rounded-lg text-sm"
+                  className="px-4 py-1 bg-primary text-white rounded-xl text-sm"
                 >
                   Daftar
                 </button>
@@ -383,7 +379,7 @@ export default function Navigation() {
             )}
 
             {showProfile && (
-              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-200 shadow-lg rounded-md animate-fadeIn">
+              <div className="absolute right-0 top-12 w-48 bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden animate-fadeIn">
                 <ul className="text-sm text-gray-700">
                   {[
                     { href: "/profile", label: "Profil" },

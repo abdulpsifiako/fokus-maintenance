@@ -136,7 +136,11 @@ export default function FormUploadGratis() {
             label={
               <>
                 • Tulis Komentar dan tag 5 teman di{" "}
-                <a href="#" className="text-blue-600 underline">
+                <a
+                  href={`${dataLatihanTO.link}`}
+                  target="_blank"
+                  className="text-blue-600 underline"
+                >
                   postingan ini
                 </a>
               </>
@@ -152,7 +156,11 @@ export default function FormUploadGratis() {
             label={
               <>
                 • Repost ke story instagram kamu{" "}
-                <a href="#" className="text-blue-600 underline">
+                <a
+                  href={`${dataLatihanTO.link}`}
+                  target="_blank"
+                  className="text-blue-600 underline"
+                >
                   postingan ini
                 </a>{" "}
                 dan mention kami

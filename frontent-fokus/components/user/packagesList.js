@@ -2,13 +2,14 @@ import { getProgramLanding } from "@/lib/axios/program";
 import { Check } from "lucide-react";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
-import PaymentModal from "./paymentModal";
 import Alert from "../public/alert";
 import LoadingModal from "../public/loadingModal";
 import { createSnapTransaksi } from "@/lib/axios/transaksi";
 import Cookies from "js-cookie";
 import { useSelector } from "react-redux";
-import { getProgramUtamaByID } from "@/lib/axios/programUtama";
+import { getProgramku, getProgramUtamaByID } from "@/lib/axios/programUtama";
+import PaymentModal from "./paymentModal";
+import VoucherModal from "./voucherModal";
 
 const hitungHargaAkhir = (properties) => {
   const harga = Number(properties?.harga || 0);
@@ -54,14 +55,37 @@ export default function PaketCardGrid() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [sortBy, setSortBy] = useState("created_at|desc");
+  const [dataProgramku, setDataProgramKu] = useState(null);
+  const [idGabung, setidGabung] = useState(null);
 
   const [openModal, setOpenModal] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [openVoucherModal, setOpenVoucherModal] = useState(null);
+  const [price, setPrice] = useState(0);
+
+  const fetchProgramku = useCallback(
+    async (params) => {
+      if (!token) {
+        return;
+      }
+      const res = await getProgramku("Program Utama", token);
+      const data = res.data.map((item) => {
+        return item.id;
+      });
+      setDataProgramKu(data);
+    },
+    [token],
+  );
+
+  useEffect(() => {
+    fetchProgramku();
+  }, [fetchProgramku]);
 
   const openPaketModal = (id) => {
     setSelectedId(id);
-    setOpenModal(true);
+    setidGabung(id);
+    setOpenVoucherModal(true);
   };
 
   const closeModal = () => {
@@ -107,20 +131,26 @@ export default function PaketCardGrid() {
     }
   };
 
-  const handleGabungSekarang = async (id) => {
+  const handleGabungSekarang = async (id, voucherData) => {
     if (!token || Object.keys(dataUser).length === 0) {
       router.push("/auth/login");
       return;
     }
+    setOpenVoucherModal(false); // ✅ tutup modal dulu
     setOpenModal(false);
     setLoadingPage(true);
     try {
       const detailProgram = await getProgramUtamaByID(id);
-      // //  //  console.log(detailProgram.data);
       if (detailProgram.status == 200) {
         const { harga, harga_akhir } = hitungHargaAkhir(
-          selectedItem?.properties
+          selectedItem?.properties,
         );
+
+        // ✅ pakai harga dari voucher jika ada
+        const finalHarga = voucherData?.harga_akhir ?? harga_akhir;
+        const finalVoucher = voucherData?.voucherCode ?? "";
+        const finalPotongan = voucherData?.potongan ?? 0;
+
         const res = await createSnapTransaksi(
           {
             data_transaksi: {
@@ -130,12 +160,14 @@ export default function PaketCardGrid() {
               status: "CREATED",
               program_name: detailProgram?.data?.properties.name,
               bulan: Number(selectedItem?.properties?.durasi),
-              harga: harga_akhir,
-              harga_akhir: harga_akhir,
+              harga: harga,
+              harga_akhir: finalHarga,
+              voucherCode: finalVoucher,
+              potongan: finalPotongan,
             },
             detail: dataUser,
           },
-          token
+          token,
         );
 
         if (res.status == 200) {
@@ -149,10 +181,7 @@ export default function PaketCardGrid() {
             title: "Info",
             message: "Gagal membuat transaksi",
           });
-          return;
         }
-      } else {
-        return;
       }
     } catch (error) {
       setLoadingPage(false);
@@ -162,10 +191,9 @@ export default function PaketCardGrid() {
         title: "Info",
         message: "Program utama/promo sudah berakhir",
       });
-      return;
     }
   };
-  //  //  console.log(selectedItem);
+
   return (
     <div className="bg-pink-50 py-12 justify-center items-center m-auto w-full flex">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4  font-poppins max-w-4xl">
@@ -241,15 +269,21 @@ export default function PaketCardGrid() {
                 </div>
 
                 {/* Footer */}
-                <button
-                  onClick={() => {
-                    setSelectedItem(pkg);
-                    openPaketModal(program_id);
-                  }}
-                  className="bg-secondary hover:bg-red-700 text-white text-sm font-semibold px-6 py-4 rounded-b-md shadow transition-all"
-                >
-                  Pilih
-                </button>
+                {dataProgramku &&
+                  (dataProgramku.some((item) => item === Number(program_id)) ? (
+                    ""
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSelectedItem(pkg);
+                        openPaketModal(program_id);
+                        setPrice(finalPrice);
+                      }}
+                      className="bg-secondary hover:bg-red-700 text-white text-sm font-semibold px-6 py-4 rounded-b-md shadow transition-all"
+                    >
+                      Pilih
+                    </button>
+                  ))}
               </div>
             );
           })}
@@ -283,7 +317,10 @@ export default function PaketCardGrid() {
 
               {/* Join */}
               <button
-                onClick={() => handleGabungSekarang(selectedId)}
+                onClick={() => {
+                  setOpenVoucherModal(true);
+                  setidGabung(selectedId);
+                }}
                 className="w-full bg-primary text-white py-3 rounded-md font-semibold hover:bg-red-700 transition"
               >
                 Gabung Sekarang
@@ -291,6 +328,16 @@ export default function PaketCardGrid() {
             </div>
           </div>
         </div>
+      )}
+
+      {openVoucherModal && (
+        <VoucherModal
+          harga={price}
+          onClose={() => setOpenVoucherModal(false)}
+          onLanjut={(voucherData) =>
+            handleGabungSekarang(idGabung, voucherData)
+          }
+        />
       )}
       <PaymentModal
         open={openModalPembayaran}

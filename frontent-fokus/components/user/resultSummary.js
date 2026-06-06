@@ -73,15 +73,16 @@ export default function ResultSummary({ dataSoal, skor }) {
           onClick={async () => {
             setLoading(true); // tampilkan loading sebelum pindah halaman
             await new Promise((resolve) => setTimeout(resolve, 2000));
-            router.push({
-              pathname: "/pembahasan",
-              query: {
-                program_id: dataSoal.program_id,
-                jenis: dataSoal.jenis,
-                title: dataSoal.title,
-                module_name: dataSoal.module_name,
-              },
-            });
+            // router.push({
+            //   pathname: "/pembahasan",
+            //   query: {
+            //     program_id: dataSoal.program_id,
+            //     jenis: dataSoal.jenis,
+            //     title: dataSoal.title,
+            //     module_name: dataSoal.module_name,
+            //   },
+            // });
+            router.push(`/summary-latihan?id=${dataSoal.program_id}`);
           }}
           className="mt-4 bg-red-600 hover:bg-red-700 text-white cursor-pointer py-2 px-5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
         >

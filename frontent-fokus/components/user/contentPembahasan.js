@@ -209,7 +209,7 @@ export default function ContentPembahasan() {
         </div>
 
         <button
-          onClick={() => router.push(`/detail/${programId}`)}
+          onClick={() => router.push(`/summary-latihan?id=${programId}`)}
           className="mt-4 py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition"
         >
           Akhiri Pembahasan
