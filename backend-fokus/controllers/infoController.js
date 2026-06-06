@@ -20,7 +20,7 @@ async function addInfo(req, res) {
     const info = infoRepo.create({
       judul,
       deskripsi,
-      tanggal: tanggal || now.toISOString(),
+      tanggal: tanggal || null,
       link: link || null,
       status: status || false,
       created_at: now,
