@@ -52,7 +52,7 @@ module.exports = {
       if (jenis !== "Tryout") {
         qb.andWhere(
           "answerUser.properties -> 'data_soal' ->> 'module_name' = :module_name",
-          { module_name }
+          { module_name },
         );
       }
 
@@ -117,7 +117,7 @@ module.exports = {
                     "answerUser".created_at DESC
                 LIMIT 10;
                 `,
-        [id, jenis, title, module_name]
+        [id, jenis, title, module_name],
       );
       return res.status(200).json({
         status: 200,
@@ -170,7 +170,7 @@ module.exports = {
                 ORDER BY rank
                 LIMIT 30;
                 `,
-        [id, jenis, title]
+        [id, jenis, title],
       );
 
       const userRank = await answerUserModel.query(
@@ -199,7 +199,7 @@ module.exports = {
                 FROM ranked
                 WHERE ranked.user_id::text = $4;
                 `,
-        [id, jenis, title, userId]
+        [id, jenis, title, userId],
       );
 
       // 🟣 Ambil total peserta (untuk info "ranking x dari y")
@@ -213,7 +213,7 @@ module.exports = {
                     AND properties -> 'data_soal' ->> 'title' = $3
                     AND is_deleted = false;
                 `,
-        [id, jenis, title]
+        [id, jenis, title],
       );
 
       const statusCount = await answerUserModel.query(
@@ -235,7 +235,7 @@ module.exports = {
                     COUNT(*) FILTER (WHERE keterangan ILIKE 'tidak lulus') AS jumlah_tidak_lulus
                 FROM latest_answer;
                 `,
-        [id, jenis, title]
+        [id, jenis, title],
       );
 
       const { jumlah_lulus, jumlah_tidak_lulus } = statusCount[0] || {};
@@ -277,8 +277,9 @@ module.exports = {
                         "answerUser".properties -> 'data_soal' ->> 'title',
                         "answerUser".created_at DESC;
                     `,
-        [id]
+        [id],
       );
+      console.log(result);
       return res.status(200).json({
         status: 200,
         success: true,
