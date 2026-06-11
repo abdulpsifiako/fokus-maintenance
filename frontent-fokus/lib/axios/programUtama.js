@@ -14,7 +14,7 @@ export async function getProgramUtama(
   search,
   sortBy,
   status,
-  jenis
+  jenis,
 ) {
   const query = new URLSearchParams();
   if (search) query.append("search", search);
@@ -41,7 +41,7 @@ export async function getProgramUtamaAdmin(
   sortBy,
   status,
   jenis,
-  token
+  token,
 ) {
   const query = new URLSearchParams();
   if (search) query.append("search", search);
@@ -60,7 +60,7 @@ export async function getProgramUtamaAdmin(
         Expires: "0",
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
 
   return response.data;
@@ -81,7 +81,7 @@ export const deleteProgramUtama = async (id, token) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -114,7 +114,7 @@ export const createVideoProgramUtama = async (data, token) => {
 export async function uploadFileProgramUtama(
   formData,
   token,
-  { onProgress } = {}
+  { onProgress } = {},
 ) {
   const response = await axios.post("/landing/upload-file", formData, {
     headers: {
@@ -125,7 +125,7 @@ export async function uploadFileProgramUtama(
     onUploadProgress: (progressEvent) => {
       if (progressEvent.total) {
         const percent = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
+          (progressEvent.loaded * 100) / progressEvent.total,
         );
 
         const loadedMB = (progressEvent.loaded / (1024 * 1024)).toFixed(1);
@@ -178,7 +178,7 @@ export const deleteVideoProgramUtama = async (id, token) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -216,7 +216,7 @@ export const getListSubMateri = async (id, token) => {
         Pragma: "no-cache",
         Expires: "0",
       },
-    }
+    },
   );
   return response.data;
 };
@@ -237,7 +237,7 @@ export const updateLatihanProgram = async (id, form, token) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -250,7 +250,7 @@ export const deleteLatihanProgramUtama = async (id, token) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -280,7 +280,7 @@ export const getPembahasanById = async (form, token) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -334,12 +334,18 @@ export const laporkanSoal = async (form, token) => {
   });
   return response.data;
 };
-export const getCountProgramUtama = async (token) => {
-  const response = await axios.get(`/program-utama/count`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
+export const getCountProgramUtama = async (token, program_utama) => {
+  const response = await axios.post(
+    `/program-utama/count`,
+    {
+      program_utama: program_utama,
     },
-  });
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
   return response.data;
 };
 export const getCountMyLatihan = async (token) => {
@@ -357,7 +363,7 @@ export async function getListLatihanProgramUtama(
   search,
   sortBy,
   token,
-  programUtama
+  programUtama,
 ) {
   const query = new URLSearchParams();
   if (search) query.append("search", search);
@@ -374,7 +380,7 @@ export async function getListLatihanProgramUtama(
         Expires: "0",
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
 
   return response.data;
@@ -394,7 +400,7 @@ export async function getListLaporan(page, limit, search, sortBy, token) {
         Expires: "0",
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
 
   return response.data;
@@ -422,7 +428,7 @@ export const getProgramku = async (jenis, token) => {
         Expires: "0",
         Authorization: `Bearer ${token}`,
       },
-    }
+    },
   );
   return response.data;
 };

@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { getPembahasan, getPembahasanById } from "@/lib/axios/programUtama";
+import Link from "next/link";
 
 export default function Page() {
   const token = Cookies.get("token");
@@ -46,9 +47,13 @@ export default function Page() {
   return (
     <div className="px-7 font-poppins mt-5">
       <header className="flex space-x-2 text-xs">
-        <p>Program Utama</p>
+        <Link href={`/program-utama`}>
+          <p>Program Utama</p>
+        </Link>
         <span>›</span>
-        <p>{data?.properties?.data_soal.module_name}</p>
+        <Link href={`/detail/${data.program_id}`}>
+          <p>{data?.properties?.data_soal.module_name}</p>
+        </Link>
         <span>›</span>
         <p className="font-semibold">{data?.properties?.data_soal.title}</p>
       </header>

@@ -20,6 +20,7 @@ import PaymentModal from "@/components/user/paymentModal";
 import LoadingModal from "@/components/public/loadingModal";
 import { setTab } from "@/lib/redux/store/tab";
 import VoucherModal from "@/components/user/voucherModal";
+import Link from "next/link";
 
 export default function VideoFokusEdu() {
   const dataUser = useSelector((state) => state.user.detail);
@@ -199,13 +200,15 @@ export default function VideoFokusEdu() {
     handleHistory();
   }, [handleHistory]);
 
-  //  //  console.log("INI Data", data);
+  // console.log("INI Data", data);
   //  //  console.log("Ini transaksi", userHasPurchased);
 
   return (
     <div className="px-7 mt-4 font-poppins text-gray-700">
       <header className="flex space-x-2 text-xs text-gray-500 my-2">
-        <p className="font-medium">Program Utama</p>
+        <Link href={`/program-utama`}>
+          <p className="font-medium">Program Utama</p>
+        </Link>
         <span>›</span>
         <p className="font-semibold text-gray-700">
           {loading ? "loading..." : data?.properties?.name}
@@ -238,7 +241,7 @@ export default function VideoFokusEdu() {
               <div className="relative">
                 {selectedVideo ? (
                   <VideoPlayer
-                    videoUrl={`${process.env.NEXT_PUBLIC_API_URL}/landing/video/${selectedVideo.videoUrl}`}
+                    videoUrl={`${selectedVideo.videoUrl} || ${process.env.NEXT_PUBLIC_API_URL}/landing/video/${selectedVideo.videoUrl}`}
                     poster={`${process.env.NEXT_PUBLIC_API_URL}/landing/images/${selectedVideo?.thumbnail}`}
                     upload={true}
                     data={selectedVideo}
@@ -309,11 +312,26 @@ export default function VideoFokusEdu() {
                     {selectedVideo.title}
                   </h1>
 
-                  <button className="px-3 py-1 rounded-md mt-2 text-xs font-semibold text-white bg-green-500">
-                    {selectedVideo.kategori === "Berbayar"
-                      ? "Membership"
-                      : selectedVideo.kategori}
-                  </button>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <button className="px-3 py-1 rounded-md text-xs font-semibold text-white bg-green-500">
+                      {selectedVideo.kategori === "Berbayar"
+                        ? "Membership"
+                        : selectedVideo.kategori}
+                    </button>
+
+                    {/* ✅ Tombol link modul — hanya muncul jika ada link_modul */}
+                    {selectedVideo.link_modul && (
+                      <a
+                        href={selectedVideo.link_modul}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 rounded-md text-xs font-semibold
+            text-white bg-blue-500 hover:bg-blue-600 transition-all"
+                      >
+                        📄 Lihat Modul
+                      </a>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="my-2 p-3 border border-dashed rounded-md text-center">

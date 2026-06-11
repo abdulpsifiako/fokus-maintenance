@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { getTransaksiPembelian } from "@/lib/axios/transaksi";
 import Cookies from "js-cookie";
 import { getRapor } from "@/lib/axios/programUtama";
+import Link from "next/link";
 
 const SummaryLatihan = () => {
   const token = Cookies.get("token");
@@ -29,7 +30,7 @@ const SummaryLatihan = () => {
           title: dataLatihan.title,
           module_name: dataLatihan.module_name,
         },
-        token
+        token,
       );
       setDataRapor(res.data);
     } catch (error) {
@@ -42,7 +43,7 @@ const SummaryLatihan = () => {
       const res = await getTransaksiPembelian(
         programId,
         token,
-        "Program Utama"
+        "Program Utama",
       );
       setUserHasPurchased(res.data);
     } catch (error) {
@@ -84,9 +85,13 @@ const SummaryLatihan = () => {
   return (
     <div className="px-7 font-poppins mt-5">
       <header className="flex space-x-2 text-xs">
-        <p>Program Utama</p>
+        <Link href={`/program-utama`}>
+          <p>Program Utama</p>
+        </Link>
         <span>›</span>
-        <p>{dataLatihan.module_name}</p>
+        <Link href={`/detail/${dataLatihan.program_id}`}>
+          <p>{dataLatihan.module_name}</p>
+        </Link>
         <span>›</span>
         <p className="font-semibold">{dataLatihan.title}</p>
       </header>

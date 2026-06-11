@@ -9,6 +9,7 @@ import {
   getRapor,
 } from "@/lib/axios/programUtama";
 import { useRouter } from "next/router";
+import Link from "next/link";
 
 export default function RaporKamu() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function RaporKamu() {
   const jenis = searchParams.get("jenis");
   const title = searchParams.get("title");
   const module_name = searchParams.get("module_name");
+  const dataLatihan = useSelector((state) => state.soal.soal);
 
   const [dataRapor, setDataRapor] = useState(null);
   const [countLatihanKu, setCountLatihanku] = useState(null);
@@ -30,7 +32,6 @@ export default function RaporKamu() {
         token,
       );
       setDataRapor(res.data);
-      console.log(res.data);
     } catch (error) {
       // //  //  console.log(error);
     }
@@ -38,7 +39,7 @@ export default function RaporKamu() {
 
   const fetchCountLatihan = useCallback(async () => {
     try {
-      const res = await getCountProgramUtama(token);
+      const res = await getCountProgramUtama(token, dataLatihan.program_utama);
       const resL = await getCountMyLatihan(token);
       setCountLatihan(res.data);
       setCountLatihanku(resL.data);
@@ -55,17 +56,21 @@ export default function RaporKamu() {
     fetchDataAnswer();
   }, [fetchDataAnswer]);
 
-  const dataLatihan = useSelector((state) => state.soal.soal);
-
   return (
     <div className="px-7 font-poppins mt-5">
       {/* Breadcrumb */}
       <header className="flex space-x-2 text-xs text-gray-500 mt-1">
-        <p>Program Utama</p>
+        <Link href={`/program-utama`}>
+          <p>Program Utama</p>
+        </Link>
         <span>›</span>
-        <p>{dataLatihan.program_utama}</p>
+        <Link href={`/detail/${dataLatihan.program_id}`}>
+          <p>{dataLatihan.program_utama}</p>
+        </Link>
         <span>›</span>
-        <p>{dataLatihan.title}</p>
+        <Link href={`/summary-latihan?id=${dataLatihan.program_id}`}>
+          <p>{dataLatihan.title}</p>
+        </Link>
         <span>›</span>
         <p className="font-semibold text-gray-800">Rapor</p>
       </header>
@@ -75,7 +80,10 @@ export default function RaporKamu() {
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-2">
-        <SummaryCard label="Total Latihan" value={countLatihan?.totalLatihan} />
+        <SummaryCard
+          label="Total Paket Latihan"
+          value={countLatihan?.totalLatihan}
+        />
         <SummaryCard
           label="Total Soal Latihan"
           value={countLatihan?.totalSemuaSoal}

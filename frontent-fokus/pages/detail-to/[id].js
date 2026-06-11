@@ -78,7 +78,6 @@ export default function PaketTryout() {
     return d;
   };
 
-  console.log(datTransaksi);
   return (
     <div className="p-7 font-poppins my-7">
       {/* Header */}
@@ -320,7 +319,7 @@ export default function PaketTryout() {
         <div className="sm:w-1/2 flex items-center justify-start">
           <div className="rounded-xl overflow-hidden sm:w-[300px] sm:h-[200px] flex items-center justify-center bg-white">
             <Image
-              src="/to.png"
+              src="/tofok.webp"
               alt="Tryout"
               width={1000}
               height={1000}

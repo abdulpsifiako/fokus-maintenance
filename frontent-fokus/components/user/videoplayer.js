@@ -7,6 +7,52 @@ import { createHistory } from "@/lib/axios/programUtama";
 const Plyr = dynamic(() => import("plyr-react"), { ssr: false });
 import "plyr-react/plyr.css";
 
+const getVideoSource = (videoUrl, poster) => {
+  if (!videoUrl) return null;
+
+  // YouTube
+  const ytMatch = videoUrl.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+  );
+  if (ytMatch) {
+    return {
+      type: "video",
+      sources: [{ src: ytMatch[1], provider: "youtube" }],
+    };
+  }
+
+  // Vimeo
+  const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) {
+    return {
+      type: "video",
+      sources: [{ src: vimeoMatch[1], provider: "vimeo" }],
+    };
+  }
+
+  // ✅ Deteksi tipe MIME dari ekstensi file
+  const ext = videoUrl.split("?")[0].split(".").pop().toLowerCase();
+  const mimeMap = {
+    mp4: "video/mp4",
+    webm: "video/webm",
+    ogg: "video/ogg",
+    ogv: "video/ogg",
+    mov: "video/quicktime",
+    mkv: "video/x-matroska",
+    avi: "video/x-msvideo",
+    m3u8: "application/x-mpegURL", // HLS streaming
+    mpd: "application/dash+xml", // DASH streaming
+  };
+
+  const mimeType = mimeMap[ext] || "video/mp4"; // fallback ke mp4
+
+  return {
+    type: "video",
+    sources: [{ src: videoUrl, type: mimeType, size: 720 }],
+    poster,
+  };
+};
+
 export default function VideoPlayer({
   videoUrl,
   poster = "/9720011.jpg",
@@ -18,11 +64,13 @@ export default function VideoPlayer({
 }) {
   const token = Cookies.get("token");
 
-  const videoSource = {
-    type: "video",
-    sources: [{ src: videoUrl, type: "video/mp4", size: 720 }],
-    poster,
-  };
+  const videoSource = getVideoSource(videoUrl, poster);
+
+  // const videoSource = {
+  //   type: "video",
+  //   sources: [{ src: videoUrl, type: "video/mp4", size: 720 }],
+  //   poster,
+  // };
 
   const plyrOptions = {
     controls: [
@@ -39,6 +87,8 @@ export default function VideoPlayer({
       "fullscreen",
     ],
     ratio: "16:9",
+    youtube: { noCookie: true, rel: 0, showinfo: 0 },
+    vimeo: { byline: false, portrait: false, title: false },
   };
 
   const handleHistory = useCallback(async () => {

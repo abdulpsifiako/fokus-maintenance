@@ -18,6 +18,9 @@ export default function VideoModal({
 
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [videoInputType, setVideoInputType] = useState(
+    data?.videoUrl ? "link" : "file", // ✅ auto detect saat edit
+  );
 
   const [form, setForm] = useState({
     name: data?.name || "",
@@ -28,6 +31,7 @@ export default function VideoModal({
     pengajar: data?.pengajar || "",
     data_pengajar: data?.data_pengajar || [],
     deskripsi: data?.deskripsi || "",
+    link_modul: data?.link_modul || "",
   });
 
   const handleStatus = (e) => {
@@ -65,7 +69,7 @@ export default function VideoModal({
       const selectedPengajar = dataPengajar.properties?.pengajar?.filter(
         (item) => {
           return item.foto === value;
-        }
+        },
       );
       setForm((prev) => ({ ...prev, data_pengajar: selectedPengajar }));
     }
@@ -92,7 +96,7 @@ export default function VideoModal({
     try {
       const response = await getListProgramUtamaVideo(token);
       const pengajar = response.data.filter(
-        (item) => item.id === Number(programId)
+        (item) => item.id === Number(programId),
       );
       setDataPengajar(pengajar[0]);
     } catch (error) {
@@ -137,6 +141,137 @@ export default function VideoModal({
             <option value="Gratis">Gratis</option>
             <option value="Berbayar">Berbayar</option>
           </select>
+
+          {/* Toggle file / link */}
+          <div className="flex gap-2 border border-gray-200 rounded-lg p-1 w-fit">
+            <button
+              type="button"
+              onClick={() => setVideoInputType("file")}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition
+      ${
+        videoInputType === "file"
+          ? "bg-primary text-white"
+          : "text-gray-500 hover:bg-gray-100"
+      }`}
+            >
+              Upload File
+            </button>
+            <button
+              type="button"
+              onClick={() => setVideoInputType("link")}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition
+      ${
+        videoInputType === "link"
+          ? "bg-primary text-white"
+          : "text-gray-500 hover:bg-gray-100"
+      }`}
+            >
+              Link Video
+            </button>
+          </div>
+
+          {/* Input Link Video */}
+          {videoInputType === "link" && (
+            <div>
+              <label className="text-sm text-gray-600 mb-1 block">
+                Link Video
+                <span className="text-xs text-gray-400 ml-1">
+                  (YouTube, Vimeo, atau URL langsung)
+                </span>
+              </label>
+              <input
+                type="url"
+                name="videoUrl"
+                value={form.videoUrl}
+                onChange={handleChange}
+                placeholder="https://youtube.com/watch?v=... atau https://server.com/video.mp4"
+                className="border border-gray-400 p-2 rounded focus:outline-red-500 w-full text-sm"
+              />
+              {/* Preview link */}
+              {form.videoUrl && (
+                <video
+                  src={form.videoUrl}
+                  controls
+                  className="mt-2 w-full rounded max-h-40"
+                  onError={(e) => (e.target.style.display = "none")}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Upload File Video — hanya tampil jika pilih file */}
+          {videoInputType === "file" && (
+            <div
+              className="w-full relative border-2 border-gray-300 border-dashed rounded-lg p-6 text-center"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              {!preview ? (
+                <>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="absolute inset-0 w-full h-full opacity-0 z-50 cursor-pointer"
+                    onChange={(e) => handleFiles(e.target.files[0])}
+                  />
+                  <Image
+                    width={48}
+                    height={48}
+                    className="mx-auto h-12 w-12 opacity-70"
+                    src="https://www.svgrepo.com/show/522461/video.svg"
+                    alt="Upload Video"
+                  />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    <span>Drag and drop</span>
+                    <span className="text-indigo-600"> or browse </span>
+                    <span>to upload video</span>
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500">
+                    MP4, MKV, AVI up to 200MB
+                  </p>
+                </>
+              ) : (
+                <div className="relative">
+                  <video
+                    src={
+                      preview instanceof File
+                        ? URL.createObjectURL(preview)
+                        : `${process.env.NEXT_PUBLIC_API_URL}/landing/video/${preview}`
+                    }
+                    controls
+                    className="mx-auto max-h-56 w-full rounded"
+                  />
+                  <p className="mt-2 text-xs text-gray-500">{file?.name}</p>
+                  <label className="text-xs text-indigo-600 cursor-pointer">
+                    Ganti Video
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => handleFiles(e.target.files[0])}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Link Modul — opsional */}
+          <div>
+            <label className="text-sm text-gray-600 mb-1 block">
+              Link Modul
+              <span className="text-xs text-gray-400 ml-1">(opsional)</span>
+            </label>
+            <input
+              type="url"
+              name="link_modul"
+              value={form.link_modul}
+              onChange={handleChange}
+              placeholder="https://drive.google.com/..."
+              className="border border-gray-400 p-2 rounded focus:outline-red-500 w-full text-sm"
+            />
+          </div>
           <select
             name="pengajar"
             value={form.pengajar}

@@ -112,6 +112,7 @@ export default function ModulDetail({
             deskripsi: vid.deskripsi,
             videoUrl: vid.video,
             foto_pengajar: vid.pengajar || "pengajar.png",
+            link_modul: vid.link_modul || "",
             complete: isComplete,
           };
         }),

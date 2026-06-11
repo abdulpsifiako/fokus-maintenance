@@ -25,7 +25,7 @@ export default function ProgramUtama() {
       const res = await getProgramku(jenis, token);
       setDataProgram(res.data);
     },
-    [jenis, token]
+    [jenis, token],
   );
 
   useEffect(() => {
@@ -82,9 +82,16 @@ export default function ProgramUtama() {
                     </h3>
 
                     <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">
-                      {program.kategori}
+                      {program.valid_until
+                        ? `Berlaku hingga ${new Date(
+                            program.valid_until,
+                          ).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}`
+                        : "-"}
                     </p>
-
                     {/* spacer supaya tinggi seragam */}
                     <div className="mt-auto" />
                   </div>
