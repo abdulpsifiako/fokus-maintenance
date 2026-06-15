@@ -320,17 +320,19 @@ export default function VideoFokusEdu() {
                     </button>
 
                     {/* ✅ Tombol link modul — hanya muncul jika ada link_modul */}
-                    {selectedVideo.link_modul && (
-                      <a
-                        href={selectedVideo.link_modul}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1 rounded-md text-xs font-semibold
+                    {token &&
+                      userHasPurchased.isPurchase &&
+                      selectedVideo.link_modul && (
+                        <a
+                          href={selectedVideo.link_modul}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 rounded-md text-xs font-semibold
             text-white bg-blue-500 hover:bg-blue-600 transition-all"
-                      >
-                        📄 Lihat Modul
-                      </a>
-                    )}
+                        >
+                          📄 Lihat Modul
+                        </a>
+                      )}
                   </div>
                 </div>
               ) : (

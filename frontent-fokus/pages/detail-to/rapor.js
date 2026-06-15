@@ -6,6 +6,7 @@ import { getRankingTO } from "@/lib/axios/programUtama";
 import { useRouter } from "next/router";
 import NamaProvinsi from "@/components/admin/namaProvinsi";
 import NamaKabupaten from "@/components/admin/namaKabupaten";
+import Link from "next/link";
 
 export default function RaporKamuTO() {
   const router = useRouter();
@@ -40,9 +41,13 @@ export default function RaporKamuTO() {
     <div className="p-6 font-poppins space-y-6">
       {/* Breadcrumb */}
       <header className="flex space-x-2 text-xs text-gray-500 mt-4">
-        <p>Tryout</p>
+        <Link href={`/tryout`}>
+          <p>Tryout</p>
+        </Link>
         <span>›</span>
-        <p>{dataLatihan?.title}</p>
+        <Link href={`/detail-to/summary?id=${id}`}>
+          <p>{dataLatihan?.title}</p>
+        </Link>
         <span>›</span>
         <p className="font-semibold text-gray-800">Peringkat</p>
       </header>

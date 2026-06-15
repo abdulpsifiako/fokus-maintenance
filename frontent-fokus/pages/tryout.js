@@ -147,7 +147,6 @@ export default function TryOuts() {
       }
     }
   };
-  console.log(dataProgram);
 
   return (
     <div className="landing-page font-poppins">

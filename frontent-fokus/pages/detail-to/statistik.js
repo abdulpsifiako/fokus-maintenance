@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { getPembahasan, getPembahasanById } from "@/lib/axios/programUtama";
 import StatistikNilaiChartTO from "@/components/user/statistikNilaiChartTO";
+import Link from "next/link";
 
 export default function PageTO() {
   const token = Cookies.get("token");
@@ -40,9 +41,13 @@ export default function PageTO() {
   return (
     <div className="p-7 font-poppins my-7">
       <header className="flex space-x-2 text-xs">
-        <p>Tryout</p>
+        <Link href={`/tryout`}>
+          <p>Tryout</p>
+        </Link>
         <span>›</span>
-        <p>{data?.properties?.data_soal.module_name}</p>
+        <Link href={`/detail-to/summary?id=${programId}`}>
+          <p>{data?.properties?.data_soal.module_name}</p>
+        </Link>
       </header>
       <div className="my-2">
         <StatistikNilaiChartTO data={data} maxValue={9} />

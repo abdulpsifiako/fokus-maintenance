@@ -92,9 +92,9 @@ export default function Navigation() {
   return (
     <>
       {/* MOBILE NAV */}
-      <div className="fixed top-4 left-4 right-4 z-50 md:hidden bg-white/90 backdrop-blur-md shadow-lg rounded-2xl border border-gray-100 px-4 py-3 flex justify-between items-center font-poppins">
+      <div className="fixed top-4 left-4 right-4 z-50 md:hidden bg-white/35 backdrop-blur-md shadow-lg rounded-4xl border border-gray-100 px-4 py-3 flex justify-between items-center font-poppins">
         <Link href="/">
-          <Image src="/logo.png" alt="FokusEdu" height={100} width={150} />
+          <Image src="/LOGO.png" alt="FokusEdu" height={100} width={150} />
         </Link>
         <button onClick={toggleMenu} className="p-2 rounded hover:bg-gray-100">
           <LuSquareMenu size={24} />
@@ -105,7 +105,7 @@ export default function Navigation() {
       {showMenu && (
         <div
           ref={menuRef}
-          className="fixed top-20 left-4 right-4 bg-white/95 backdrop-blur-md shadow-xl rounded-2xl border border-gray-100 py-4 px-2 z-40 animate-fadeIn"
+          className="fixed top-20 left-4 right-4 bg-white/95 backdrop-blur-md shadow-xl rounded-2xl border border-gray-100 py-2 px-2 z-40 animate-fadeIn"
         >
           <ul className="text-center text-sm space-y-2 font-medium">
             <Link href="/program-utama" onClick={() => setShowMenu(false)}>
@@ -124,7 +124,7 @@ export default function Navigation() {
                   isActive("/kelas-online") ? "text-primary font-bold" : ""
                 }`}
               >
-                Kelas Online
+                Live Class
               </li>
             </Link>
 
@@ -256,10 +256,10 @@ export default function Navigation() {
 
       {/* DESKTOP NAV */}
       <div className="hidden md:flex fixed top-4 left-4 right-4 z-50">
-        <div className="max-w-[1440px] mx-auto px-6 py-3 w-full flex items-center justify-between font-poppins bg-white/90 backdrop-blur-md shadow-md rounded-2xl border border-gray-100">
+        <div className="max-w-[1440px] mx-auto px-6 py-2 w-full flex items-center justify-between font-poppins bg-white/35 backdrop-blur-md shadow-md rounded-4xl border border-gray-100">
           <Link href="/">
             <Image
-              src="/logo.png"
+              src="/LOGO.png"
               alt="FokusEdu"
               height={150}
               width={150}
@@ -284,7 +284,7 @@ export default function Navigation() {
                   isActive("/kelas-online") ? "text-primary font-bold" : ""
                 }`}
               >
-                Kelas Online
+                Live Class
               </li>
             </Link>
 
@@ -365,13 +365,13 @@ export default function Navigation() {
               <div className="flex gap-3">
                 <button
                   onClick={() => router.push("/auth/login")}
-                  className="px-4 py-1 border border-primary rounded-xl text-primary text-sm"
+                  className="px-4 py-1 border border-primary rounded-xl text-primary text-xs"
                 >
                   Masuk
                 </button>
                 <button
                   onClick={() => router.push("/auth/daftar")}
-                  className="px-4 py-1 bg-primary text-white rounded-xl text-sm"
+                  className="px-4 py-1 bg-primary text-white rounded-xl text-xs"
                 >
                   Daftar
                 </button>

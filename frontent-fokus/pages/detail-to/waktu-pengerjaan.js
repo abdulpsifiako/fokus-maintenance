@@ -27,7 +27,7 @@ export default function WaktuPengerjaanChartTO() {
     try {
       const res = await getPembahasan(
         { program_id: programId, jenis: jenis, title: title },
-        token
+        token,
       );
       setData(res.data);
     } catch (error) {
@@ -74,9 +74,29 @@ export default function WaktuPengerjaanChartTO() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="soal" tick={{ fontSize: 10 }} />
-              <YAxis />
-              <Tooltip />
+              <XAxis
+                dataKey="soal"
+                tick={{ fontSize: 10 }}
+                label={{
+                  value: "Nomor Soal",
+                  position: "insideBottom",
+                  offset: -2,
+                  fontSize: 12,
+                }}
+              />
+              <YAxis
+                label={{
+                  value: "Waktu (detik)",
+                  angle: -90,
+                  position: "insideLeft",
+                  offset: 10,
+                  fontSize: 12,
+                }}
+              />
+              <Tooltip
+                formatter={(value) => [`${value} detik`, "Waktu Pengerjaan"]}
+                labelFormatter={(label) => `Soal No. ${label}`}
+              />
               <Legend />
               <Area
                 type="monotone"
@@ -84,7 +104,7 @@ export default function WaktuPengerjaanChartTO() {
                 stroke="#8884d8"
                 fillOpacity={1}
                 fill="url(#colorWaktu)"
-                name="Nomor"
+                name="Grafik Pengerjakan Soal"
               />
             </AreaChart>
           </ResponsiveContainer>

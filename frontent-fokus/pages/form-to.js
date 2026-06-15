@@ -184,7 +184,7 @@ export default function FormUploadGratis() {
         {/* Gambar Ilustrasi */}
         <div className="flex justify-center items-center">
           <Image
-            src="/uto.png"
+            src="/tofok.webp"
             alt="Ilustrasi"
             width={5000}
             height={5000}

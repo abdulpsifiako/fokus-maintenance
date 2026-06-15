@@ -28,8 +28,11 @@ export default function TryOutForm({ mode, onBack, data }) {
 
     startGratis: data?.properties?.startGratis ?? "",
     endGratis: data?.properties?.endGratis ?? "",
-    // startPremium: data?.properties?.startPremium ?? "",
-    // endPremium: data?.properties?.endPremium ?? "",
+    startPremium: data?.properties?.startPremium ?? "",
+    endPremium: data?.properties?.endPremium ?? "",
+    pemMulai: data?.properties?.pemMulai ?? "",
+    pemSelesai: data?.properties?.pemSelesai ?? "",
+    aktiUntil: data?.properties?.aktiUntil ?? "",
     hargaPremium: data?.properties?.hargaPremium ?? "",
     op_pembahasan: data?.properties?.op_pembahasan ?? "",
   });
@@ -200,6 +203,7 @@ export default function TryOutForm({ mode, onBack, data }) {
       );
     }
   }, [mode, data]);
+  console.log(data);
   return (
     <div className="">
       <h2 className="text-2xl font-bold text-red-700 mb-2">
@@ -313,7 +317,7 @@ export default function TryOutForm({ mode, onBack, data }) {
             {/* ✅ Jika Premium dipilih */}
             {form.fitur.includes("Premium") && (
               <div className="mt-4 space-y-3 border-t pt-3">
-                {/* <h4 className="font-semibold text-gray-700">Periode Premium</h4>
+                <h4 className="font-semibold text-gray-700">Periode Premium</h4>
                 <div>
                   <label className="block mb-1 font-medium">
                     Tanggal Mulai
@@ -337,7 +341,7 @@ export default function TryOutForm({ mode, onBack, data }) {
                     onChange={handleChange}
                     className="w-full border border-red-300 rounded-md p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
                   />
-                </div> */}
+                </div>
                 <div>
                   <label className="block mb-1 font-medium">
                     Harga Premium
@@ -353,6 +357,32 @@ export default function TryOutForm({ mode, onBack, data }) {
                 </div>
               </div>
             )}
+
+            <div className="mt-4 space-y-3 border-t pt-3">
+              <h4 className="font-semibold text-gray-700">Periode Pembelian</h4>
+              <div>
+                <label className="block mb-1 font-medium">Tanggal Mulai</label>
+                <input
+                  name="pemMulai"
+                  type="date"
+                  value={form.pemMulai}
+                  onChange={handleChange}
+                  className="w-full border border-red-300 rounded-md p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block mb-1 font-medium">
+                  Tanggal Selesai
+                </label>
+                <input
+                  name="pemSelesai"
+                  type="date"
+                  value={form.pemSelesai}
+                  onChange={handleChange}
+                  className="w-full border border-red-300 rounded-md p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+                />
+              </div>
+            </div>
           </div>
         </div>
         {/* KANAN */}
@@ -462,6 +492,16 @@ export default function TryOutForm({ mode, onBack, data }) {
               name="op_pembahasan"
               type="date"
               value={form.op_pembahasan}
+              onChange={handleChange}
+              className="w-full border border-red-300 rounded-md p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 font-medium">Try Out Aktif</label>
+            <input
+              name="aktiUntil"
+              type="date"
+              value={form.aktiUntil}
               onChange={handleChange}
               className="w-full border border-red-300 rounded-md p-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
             />

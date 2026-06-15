@@ -1,4 +1,4 @@
-import { addDataLatihan } from "@/lib/redux/store/tryout";
+import { addDataLatihan, addOpPembahasan } from "@/lib/redux/store/tryout";
 import { BarChart2, Award, BookOpen, Clock } from "lucide-react";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +12,85 @@ import { cekTryout } from "@/lib/axios/tryout";
 import LoadingModal from "@/components/public/loadingModal";
 import React from "react";
 import { Lock } from "lucide-react";
+import Link from "next/link";
+
+// ─── PERIODE HELPERS ──────────────────────────────────────────────────────────
+
+const toDay = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const todayDay = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+/**
+ * Cek apakah hari ini berada di dalam periode [start, end].
+ * Jika start kosong → tidak ada batas awal.
+ * Jika end kosong   → tidak ada batas akhir.
+ */
+const isInPeriode = (start, end) => {
+  const now = todayDay();
+  const s = toDay(start);
+  const e = toDay(end);
+  if (s && now < s) return false;
+  if (e && now > e) return false;
+  return true;
+};
+
+const isPeriodeEnded = (end) => {
+  const e = toDay(end);
+  return !!e && todayDay() > e;
+};
+const isPeriodeStarted = (start) => {
+  const s = toDay(start);
+  return !s || todayDay() >= s;
+};
+
+const fmtDate = (dateStr) => {
+  if (!dateStr) return null;
+  return new Date(dateStr).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+/**
+ * Cek apakah tombol latihan bisa diklik.
+ * Bisa diklik jika setidaknya SATU fitur aktif periodenya.
+ * Fitur tanpa periode (kosong semua) dianggap unlimited → aktif.
+ */
+const getPeriodeLatihanStatus = (props) => {
+  const fiturList = props?.fitur || [];
+
+  // Tidak ada fitur sama sekali → tidak ada batasan → boleh kerjakan
+  if (!fiturList.length) return { bisaDiklik: true, statuses: [] };
+
+  const statuses = fiturList.map((fitur) => {
+    const start = props[`start${fitur}`] || null;
+    const end = props[`end${fitur}`] || null;
+    return {
+      fitur,
+      aktif: isInPeriode(start, end),
+      ended: isPeriodeEnded(end),
+      belum: !isPeriodeStarted(start),
+      start,
+      end,
+    };
+  });
+
+  const bisaDiklik = statuses.some((s) => s.aktif);
+
+  return { bisaDiklik, statuses };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Total nilai maksimal
 const totalMax = 220;
@@ -33,6 +112,8 @@ export default function DetailSummaryTO() {
 
   const [userHasPurchased, setUserHasPurchased] = useState(false);
   const dataLatihan = useSelector((state) => state.tryout.dataLatihan);
+  const [mengerjakan, setMengerjakan] = useState(false);
+  const openPembahasan = useSelector((state) => state.tryout.op_pembahasan);
 
   const dataSoal = useSelector((state) => state.tryout.dataSoal);
 
@@ -45,10 +126,61 @@ export default function DetailSummaryTO() {
 
   const [maxPoin, setMaxPoin] = useState(0);
 
+  // ── Cek periode pengerjaan dari dataSoal.properties ───────────────────────
+  const { bisaDiklik, statuses } = getPeriodeLatihanStatus(
+    dataSoal?.properties || {},
+  );
+
+  // Keterangan singkat untuk ditampilkan di bawah tombol
+  const periodeInfo = (() => {
+    if (!statuses.length) return null;
+
+    const now = todayDay();
+
+    // Cari fitur yang aktif → tampilkan sisa waktu
+    const aktif = statuses.find((s) => s.aktif);
+    if (aktif) {
+      const endDay = toDay(aktif.end);
+      if (endDay) {
+        const sisa = Math.round((endDay - now) / 86400000);
+        return {
+          text: `Periode ${aktif.fitur}: berakhir ${sisa} hari lagi (${fmtDate(aktif.end)})`,
+          color: "text-green-600",
+        };
+      }
+      return null; // unlimited, tidak perlu info
+    }
+
+    // Semua ended
+    if (statuses.every((s) => s.ended)) {
+      const last = statuses.reduce((a, b) =>
+        new Date(a.end) > new Date(b.end) ? a : b,
+      );
+      return {
+        text: `Periode pengerjaan telah berakhir sejak ${fmtDate(last.end)}`,
+        color: "text-red-500",
+      };
+    }
+
+    // Ada yang belum mulai
+    const belum = statuses.find((s) => s.belum);
+    if (belum) {
+      const diff = Math.round((toDay(belum.start) - now) / 86400000);
+      return {
+        text: `Periode ${belum.fitur} dimulai ${diff} hari lagi (${fmtDate(belum.start)})`,
+        color: "text-yellow-600",
+      };
+    }
+
+    return null;
+  })();
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   const handleNavigation = async (url) => {
     try {
-      setLoading(true); // tampilkan loading sebelum pindah halaman
-      await new Promise((resolve) => setTimeout(resolve, 500)); // efek delay kecil agar terasa smooth
+      setLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
       router.push(url);
     } finally {
       setLoading(false);
@@ -56,10 +188,9 @@ export default function DetailSummaryTO() {
   };
 
   const handleLatihan = async () => {
-    setLoading(true); // tampilkan modal loading
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // delay agar terlihat halus
+    setLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     const transformData = (oldData) => {
-      // Gabungkan semua soal dari tiap materi
       const allSoal = (oldData.properties?.materi || []).flatMap((m) =>
         (m.data_soal || []).map((s) => ({
           nama_materi: m.nama || "",
@@ -75,7 +206,6 @@ export default function DetailSummaryTO() {
         })),
       );
 
-      // Kembalikan data lengkap
       return {
         id: oldData.id || null,
         jenis: "Tryout",
@@ -88,17 +218,14 @@ export default function DetailSummaryTO() {
           ? oldData.properties.fitur.join(", ")
           : oldData.properties?.fitur || "",
         waktu: oldData.properties?.waktu || "",
-        datasoal: allSoal, // hasil gabungan semua soal
+        datasoal: allSoal,
         questions: allSoal.length,
         status: oldData.properties?.status ?? true,
       };
     };
 
-    // Transformasikan datanya
     const data = transformData(dataSoal);
-
     dispatch(addDataLatihan(data));
-
     router.push("/detail-to/latihan-soal");
   };
 
@@ -116,29 +243,29 @@ export default function DetailSummaryTO() {
         token,
       );
       const raporData = res.data[0];
+      if (raporData) {
+        setMengerjakan(true);
+      }
 
       const dataSoal = raporData.properties.data_soal.datasoal;
       const dataAnswer = raporData.properties.data_answer;
 
-      // Hitung total poin maksimum (poin tertinggi di setiap soal)
       const maxPoin = dataSoal.reduce((total, soal) => {
         if (soal.opsi.length > 0) {
           const poinTertinggi = Math.max(...soal.opsi.map((o) => o.poin));
           return total + poinTertinggi;
         }
-        return total; // kalau kosong, jangan tambahkan apa pun
+        return total;
       }, 0);
 
       setMaxPoin(maxPoin);
 
-      // 🔹 Hitung poin yang didapat per materi
       const poinPerMateri = {};
       let totalUserPoin = 0;
 
       Object.entries(dataAnswer).forEach(([index, jawaban]) => {
         const soal = dataSoal[index];
         if (!soal) return;
-
         const opsiIndex = jawaban.option;
         const poinDiperoleh = soal.opsi[opsiIndex]?.poin || 0;
         const namaMateri = soal.nama_materi;
@@ -158,7 +285,6 @@ export default function DetailSummaryTO() {
         poinPerMateri[namaMateri].jumlahSoal += 1;
       });
 
-      // Ubah ke array biar gampang dipakai di UI
       const hasilPerMateri = Object.entries(poinPerMateri).map(
         ([namaMateri, data]) => ({
           nama_materi: namaMateri,
@@ -170,16 +296,11 @@ export default function DetailSummaryTO() {
         }),
       );
 
-      // Simpan semua ke state
       setDataRapor(res.data);
       setDetailMateri(hasilPerMateri);
       setTotalSkor(totalUserPoin);
-
-      //  //  console.log("📊 Hasil per materi:", hasilPerMateri);
-      //  //  console.log("🏆 Total poin user:", totalUserPoin);
-      //  //  console.log("🎯 Max poin:", maxPoin);
     } catch (error) {
-      //  //  console.log("❌ Gagal fetch rapor:", error);
+      // console.log("❌ Gagal fetch rapor:", error);
     }
   }, [dataLatihan?.title, token]);
 
@@ -188,13 +309,16 @@ export default function DetailSummaryTO() {
       const res = await cekTryout(dataLatihan.id, token, "Tryout");
       setUserHasPurchased(res.data);
     } catch (error) {
-      // //  //  console.log(error)
+      // console.log(error)
     }
   }, [token, dataLatihan.id]);
 
   useEffect(() => {
     if (!dataLatihan) {
       router.push("/");
+    }
+    if (dataLatihan.op_pembahasan) {
+      dispatch(addOpPembahasan(dataLatihan?.op_pembahasan));
     }
     getTransaksiProgram();
     fetchDataAnswer();
@@ -203,21 +327,19 @@ export default function DetailSummaryTO() {
   if (!dataLatihan) {
     return null;
   }
-  // useEffect(() => {
-  //   const maxPoin = hitungMaxPoin(dataLatihan?.datasoal);
-  //   setMaxPoin(maxPoin);
-  // }, [dataLatihan?.datasoal]);
 
   return (
     <>
       <div className="p-7 font-poppins">
         <header className="flex space-x-2 text-xs">
-          <p>Tryout</p>
+          <Link href={`/tryout`}>
+            <p>Tryout</p>
+          </Link>
           <span>›</span>
           <p>{dataSoal.properties.judul}</p>
         </header>
+
         <div className="my-3 w-full">
-          {/* <h1 className="text-dark-primary font-semibold">Latihan</h1> */}
           <div className="text-[10px]">
             <p className="gap-1 flex items-center">
               <span>
@@ -236,13 +358,37 @@ export default function DetailSummaryTO() {
               {dataSoal.properties.waktu} Menit Waktu Pengerjaan
             </p>
           </div>
+
+          {/* ── TOMBOL KERJAKAN — ditambahkan logika periode ── */}
           <button
-            onClick={() => setOpen(true)}
-            className="bg-primary hover:bg-primary text-white px-4 py-2 rounded font-poppins my-3 text-xs"
+            onClick={() => {
+              if (!bisaDiklik) return; // blokir jika di luar periode
+              setOpen(true);
+            }}
+            disabled={!bisaDiklik}
+            className={`bg-primary text-white px-4 py-2 rounded font-poppins my-3 text-xs
+              ${
+                bisaDiklik
+                  ? "hover:bg-primary cursor-pointer"
+                  : "opacity-50 cursor-not-allowed"
+              }`}
           >
-            {dataSoal &&
-              (dataSoal.length > 0 ? "Ulangi latihan" : "Kerjakan latihan")}
+            {bisaDiklik
+              ? dataSoal &&
+                (dataSoal.length > 0 ? "Ulangi latihan" : "Kerjakan latihan")
+              : statuses.every((s) => s.ended)
+                ? "Periode Berakhir"
+                : "Belum Tersedia"}
           </button>
+
+          {/* Keterangan periode di bawah tombol */}
+          {periodeInfo && (
+            <p className={`text-[10px] ${periodeInfo.color}`}>
+              {periodeInfo.text}
+            </p>
+          )}
+          {/* ── END TOMBOL ── */}
+
           {open && (
             <div className="fixed inset-0 z-50 flex items-center justify-center font-poppins bg-gray-300/60 backdrop-blur-sm">
               <div className="bg-white rounded-md shadow-md max-w-md w-full p-6 space-y-4">
@@ -264,7 +410,6 @@ export default function DetailSummaryTO() {
                     otomatis.
                   </li>
                 </ul>
-
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     onClick={() => setOpen(false)}
@@ -273,10 +418,7 @@ export default function DetailSummaryTO() {
                     Batal
                   </button>
                   <button
-                    onClick={() => {
-                      // setOpen(false);
-                      handleLatihan();
-                    }}
+                    onClick={() => handleLatihan()}
                     className="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded text-sm"
                   >
                     Mulai Sekarang
@@ -345,12 +487,11 @@ export default function DetailSummaryTO() {
               <button
                 className={`${!detailPurchased.isFreeTO ? "" : "disabled pointer-events-none"}`}
                 type="button"
-                onClick={() => {
-                  //  //  console.log("none")
+                onClick={() =>
                   handleNavigation(
                     `/detail-to/waktu-pengerjaan?program_id=${dataSoal.id}&jenis=Tryout&title=${dataSoal.properties.judul}`,
-                  );
-                }}
+                  )
+                }
               >
                 <CardMenu
                   icon={<Clock size={32} />}
@@ -361,6 +502,7 @@ export default function DetailSummaryTO() {
                 />
               </button>
             </div>
+
             {/* Overlay 1: Belum beli (isFreeTO) */}
             {detailPurchased.isFreeTO && (
               <div className="absolute inset-0 z-10 rounded-xl bg-gray-900/40 flex items-center justify-center">
@@ -377,8 +519,8 @@ export default function DetailSummaryTO() {
                   <button
                     onClick={() => router.push(`/detail-to/${dataLatihan?.id}`)}
                     className="mt-3 sm:mt-4 px-[clamp(12px,3vw,24px)] py-[clamp(6px,1.5vw,10px)]
-          bg-orange-500 hover:bg-orange-600 text-white font-semibold
-          text-[clamp(10px,2vw,14px)] rounded-md shadow-md transition"
+                      bg-orange-500 hover:bg-orange-600 text-white font-semibold
+                      text-[clamp(10px,2vw,14px)] rounded-md shadow-md transition"
                   >
                     Upgrade Sekarang
                   </button>
@@ -386,17 +528,14 @@ export default function DetailSummaryTO() {
               </div>
             )}
 
-            {/* Overlay 2: Pembahasan belum dibuka (hanya jika bukan isFreeTO) */}
+            {/* Overlay 2: Pembahasan belum dibuka */}
             {!detailPurchased.isFreeTO &&
-              dataLatihan?.op_pembahasan &&
-              dataLatihan.op_pembahasan !== "" &&
-              new Date() < new Date(dataLatihan.op_pembahasan) && (
-                <div
-                  className="absolute inset-0 z-10 rounded-xl bg-gray-900/40
-      flex items-center justify-center"
-                >
+              (dataLatihan?.op_pembahasan || openPembahasan) &&
+              (dataLatihan.op_pembahasan !== "" || openPembahasan) &&
+              new Date() <
+                new Date(dataLatihan.op_pembahasan || openPembahasan) && (
+                <div className="absolute inset-0 z-10 rounded-xl bg-gray-900/40 flex items-center justify-center">
                   <div className="text-center px-3 sm:px-5 max-w-[90%]">
-                    {/* Icon kalender */}
                     <div className="flex justify-center mb-3 sm:mb-4">
                       <svg
                         className="text-white/90 w-[clamp(28px,6vw,56px)] h-[clamp(28px,6vw,56px)]"
@@ -409,26 +548,23 @@ export default function DetailSummaryTO() {
                           strokeLinejoin="round"
                           strokeWidth={2}
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0
-              002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
                       </svg>
                     </div>
-
                     <p className="text-white font-semibold text-[clamp(12px,2.5vw,18px)]">
                       Pembahasan Belum Dibuka
                     </p>
-
                     <p className="text-white/80 mt-1 text-[clamp(10px,2vw,14px)] leading-snug">
                       Akan dibuka pada{" "}
                       <span className="font-semibold text-orange-300">
-                        {new Date(dataLatihan.op_pembahasan).toLocaleDateString(
-                          "id-ID",
-                          {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          },
-                        )}
+                        {new Date(
+                          dataLatihan.op_pembahasan || openPembahasan,
+                        ).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
                       </span>
                     </p>
                   </div>
@@ -446,22 +582,20 @@ export default function DetailSummaryTO() {
                     viewBox="0 0 36 36"
                     className="w-full h-full -rotate-90deg"
                   >
-                    {/* Latar lingkaran penuh (maks poin) */}
                     <circle
                       cx="18"
                       cy="18"
                       r="15.9155"
                       fill="none"
-                      stroke="#e5e7eb" // abu-abu netral
+                      stroke="#e5e7eb"
                       strokeWidth="3"
                     />
-                    {/* Garis progres (poin didapat) */}
                     <circle
                       cx="18"
                       cy="18"
                       r="15.9155"
                       fill="none"
-                      stroke="#3b82f6" // biru
+                      stroke="#3b82f6"
                       strokeWidth="3"
                       strokeDasharray="100, 100"
                       strokeDashoffset={100 - (totalSkor / maxPoin) * 100}
@@ -469,13 +603,11 @@ export default function DetailSummaryTO() {
                       style={{ transition: "stroke-dashoffset 0.8s ease" }}
                     />
                   </svg>
-
                   <div className="absolute inset-0 flex items-center justify-center font-bold text-xl">
                     {totalSkor}
                     <span className="text-gray-500 text-sm">/{maxPoin}</span>
                   </div>
                 </div>
-
                 <div className="flex gap-3 mt-2 text-sm">
                   <div className="flex items-center gap-1">
                     <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
@@ -487,23 +619,19 @@ export default function DetailSummaryTO() {
                   </div>
                 </div>
               </div>
+
               {/* Detail Nilai */}
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
                 {(() => {
-                  // 🔹 Gabungkan data materi yang sama berdasarkan nama
                   const mergedMateri = dataSoal.properties.materi.reduce(
                     (acc, curr) => {
                       const existing = acc.find(
                         (item) => item.nama === curr.nama,
                       );
-
                       if (existing) {
-                        // Tambahkan nilai passing
                         existing.passing = (
                           Number(existing.passing) + Number(curr.passing)
                         ).toString();
-
-                        // Gabungkan data_soal juga (opsional)
                         existing.data_soal = [
                           ...existing.data_soal,
                           ...curr.data_soal,
@@ -511,18 +639,15 @@ export default function DetailSummaryTO() {
                       } else {
                         acc.push({ ...curr });
                       }
-
                       return acc;
                     },
                     [],
                   );
 
-                  // 🔹 Render hasil gabungan
                   return mergedMateri.map((item, index) => {
                     const materi = detailMateri.find(
                       (m) => m.nama_materi === item.nama,
                     );
-
                     return (
                       <NilaiCard
                         key={index}
@@ -544,18 +669,6 @@ export default function DetailSummaryTO() {
   );
 }
 
-// Komponen Menu Atas
-// function CardMenu({ icon, label, color, textColor, border }) {
-//   return (
-//     <div
-//       className={`p-4 border rounded-md flex flex-col items-center ${color} ${border} ${textColor}`}
-//     >
-//       {icon}
-//       <span className="mt-2 font-semibold text-sm text-center">{label}</span>
-//     </div>
-//   );
-// }
-
 function CardMenu({ icon, label, color, textColor, border }) {
   return (
     <div
@@ -568,59 +681,32 @@ function CardMenu({ icon, label, color, textColor, border }) {
         ${color} ${border} ${textColor}
       `}
     >
-      {/* ICON */}
-      <div
-        className="
-          flex items-center justify-center
-          w-[clamp(28px,6vw,48px)]
-          h-[clamp(28px,6vw,48px)]
-        "
-      >
+      <div className="flex items-center justify-center w-[clamp(28px,6vw,48px)] h-[clamp(28px,6vw,48px)]">
         {React.cloneElement(icon, {
           className: "w-full h-full",
           strokeWidth: 1.8,
         })}
       </div>
-
-      {/* LABEL */}
-      <span
-        className="
-          font-semibold text-center leading-tight
-          text-[clamp(10px,2.3vw,14px)]
-        "
-      >
+      <span className="font-semibold text-center leading-tight text-[clamp(10px,2.3vw,14px)]">
         {label}
       </span>
     </div>
   );
 }
 
-// Komponen Kartu Nilai
 function NilaiCard({ label, value, grade }) {
   return (
     <div
       className="
-        aspect-square
-        w-full
-        max-w-[220px]
-        mx-auto
-        rounded-xl
-        border border-orange-200
+        aspect-square w-full max-w-[220px] mx-auto
+        rounded-xl border border-orange-200
         bg-linear-to-br from-orange-50 to-white
-        shadow-sm
-        flex flex-col
-        items-center
-        justify-center
-        text-center
-        p-4
+        shadow-sm flex flex-col items-center justify-center text-center p-4
       "
     >
-      {/* LABEL */}
       <p className="text-[clamp(11px,2vw,14px)] text-gray-500 font-medium mb-1">
         {label}
       </p>
-
-      {/* VALUE */}
       <div className="flex items-end gap-1">
         <span className="text-[clamp(26px,6vw,36px)] font-bold text-orange-600">
           {value}
@@ -629,8 +715,6 @@ function NilaiCard({ label, value, grade }) {
           poin
         </span>
       </div>
-
-      {/* PASSING GRADE */}
       <div className="mt-2 text-[clamp(10px,2vw,13px)] text-gray-600">
         Passing Grade
         <span className="block font-semibold text-gray-800">{grade}</span>
@@ -638,6 +722,7 @@ function NilaiCard({ label, value, grade }) {
     </div>
   );
 }
+
 function hitungMaxPoin(datasoal = []) {
   return datasoal.reduce((total, soal) => {
     const maxOpsi = Math.max(

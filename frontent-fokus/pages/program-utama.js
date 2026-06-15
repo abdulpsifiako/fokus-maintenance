@@ -87,7 +87,7 @@ export default function ProgramUtama() {
                             program.valid_until,
                           ).toLocaleDateString("id-ID", {
                             day: "numeric",
-                            month: "long",
+                            month: "short",
                             year: "numeric",
                           })}`
                         : "-"}

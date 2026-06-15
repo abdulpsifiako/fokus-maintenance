@@ -5,6 +5,7 @@ const initialState = {
   purchased: null,
   dataLatihan: null,
   detailKelasonline: null,
+  op_pembahasan: null,
 };
 
 const tryoutSlice = createSlice({
@@ -26,6 +27,9 @@ const tryoutSlice = createSlice({
     resetDetailPurchased: (state, action) => {
       state.purchased = null;
     },
+    addOpPembahasan: (state, action) => {
+      state.op_pembahasan = action.payload;
+    },
   },
 });
 
@@ -35,5 +39,6 @@ export const {
   addDataLatihan,
   addKelasOnline,
   resetDetailPurchased,
+  addOpPembahasan,
 } = tryoutSlice.actions;
 export default tryoutSlice.reducer;

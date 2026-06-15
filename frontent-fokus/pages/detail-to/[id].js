@@ -11,6 +11,108 @@ import PaymentModal from "@/components/user/paymentModal";
 import Alert from "@/components/public/alert";
 import { freeTOPremium, freeTryout } from "@/lib/axios/tryout";
 
+// ─── PERIODE HELPERS ──────────────────────────────────────────────────────────
+
+/** Normalisasi ke tengah malam agar perbandingan per hari, bukan per detik */
+const toDay = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const todayDay = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+/**
+ * Cek apakah hari ini berada di dalam periode [start, end].
+ * Jika start kosong → tidak ada batas awal (sudah bisa).
+ * Jika end kosong   → tidak ada batas akhir (tidak pernah berakhir).
+ */
+const isInPeriode = (start, end) => {
+  const now = todayDay();
+  const s = toDay(start);
+  const e = toDay(end);
+  if (s && now < s) return false; // belum mulai
+  if (e && now > e) return false; // sudah lewat
+  return true;
+};
+
+const isPeriodeEnded = (end) => {
+  const e = toDay(end);
+  return !!e && todayDay() > e;
+};
+const isPeriodeStarted = (start) => {
+  const s = toDay(start);
+  return !s || todayDay() >= s;
+};
+
+const fmtDate = (dateStr) => {
+  if (!dateStr) return null;
+  return new Date(dateStr).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+// ─── PERIODE INFO BANNER ─────────────────────────────────────────────────────
+// Komponen kecil untuk menampilkan info periode — style mengikuti pola kode asli
+
+function PeriodeInfo({ label, start, end }) {
+  const now = todayDay();
+  const started = isPeriodeStarted(start);
+  const ended = isPeriodeEnded(end);
+  const active = started && !ended;
+
+  // Jika tidak ada start maupun end → unlimited, tidak perlu ditampilkan
+  if (!start && !end) return null;
+
+  let msg = "";
+  let color = "";
+
+  if (!started) {
+    const diff = Math.round((toDay(start) - now) / 86400000);
+    msg = `${label} dibuka ${diff} hari lagi (${fmtDate(start)})`;
+    color = "text-yellow-700 bg-yellow-50 border-yellow-200";
+  } else if (ended) {
+    msg = `${label} telah berakhir sejak ${fmtDate(end)}`;
+    color = "text-red-600 bg-red-50 border-red-200";
+  } else {
+    const diffEnd = toDay(end)
+      ? Math.round((toDay(end) - now) / 86400000)
+      : null;
+    msg =
+      diffEnd !== null
+        ? `${label} aktif · berakhir ${diffEnd} hari lagi (${fmtDate(end)})`
+        : `${label} aktif`;
+    color = "text-green-700 bg-green-50 border-green-200";
+  }
+
+  return (
+    <p className={`text-xs px-3 py-2 rounded-md border ${color}`}>{msg}</p>
+  );
+}
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+
+const fasilitas = [
+  { nama: "Sistem CAB/CBT", gratis: true, premium: true },
+  { nama: "Timer Ujian", gratis: true, premium: true },
+  { nama: "Skor Akhir", gratis: true, premium: true },
+  { nama: "Perangkingan Nasional", gratis: false, premium: true },
+  { nama: "Statistik Nilai", gratis: false, premium: true },
+  { nama: "Pembahasan", gratis: false, premium: true },
+  { nama: "Dapat Dikerjakan Berulang Kali", gratis: false, premium: true },
+  { nama: "Komentar Postingan Instagram", gratis: false, premium: true },
+  { nama: "Masa Aktif 6 Bulan", gratis: false, premium: true },
+];
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+
 export default function PaketTryout() {
   const token = Cookies.get("token");
   const [paymentData, setPaymentData] = useState("");
@@ -27,32 +129,54 @@ export default function PaketTryout() {
 
   const [paket, setPaket] = useState("Premium");
 
-  // mapping otomatis fitur dari data backend
-  const fiturList = (detailSoal?.properties?.fitur || []).map((fitur) => {
-    const lower = fitur.toLowerCase();
+  const props = detailSoal?.properties || {};
 
+  // mapping otomatis fitur dari data backend
+  const fiturList = (props.fitur || []).map((fitur) => {
+    const lower = fitur.toLowerCase();
     return {
       name: fitur,
       label: fitur,
-      harga:
-        lower === "premium"
-          ? parseInt(detailSoal?.properties?.hargaPremium || 0)
-          : 0,
-      start: detailSoal?.properties?.[`start${fitur}`] || null,
-      end: detailSoal?.properties?.[`end${fitur}`] || null,
+      harga: lower === "premium" ? parseInt(props.hargaPremium || 0) : 0,
+      start: props[`start${fitur}`] || null,
+      end: props[`end${fitur}`] || null,
     };
   });
-  const fasilitas = [
-    { nama: "Sistem CAB/CBT", gratis: true, premium: true },
-    { nama: "Timer Ujian", gratis: true, premium: true },
-    { nama: "Skor Akhir", gratis: true, premium: true },
-    { nama: "Perangkingan Nasional", gratis: false, premium: true },
-    { nama: "Statistik Nilai", gratis: false, premium: true },
-    { nama: "Pembahasan", gratis: false, premium: true },
-    { nama: "Dapat Dikerjakan Berulang Kali", gratis: false, premium: true },
-    { nama: "Komentar Postingan Instagram", gratis: false, premium: true },
-    { nama: "Masa Aktif 6 Bulan", gratis: false, premium: true },
-  ];
+
+  // ── Periode Pembelian ──────────────────────────────────────────────────────
+  const adaPeriodeBeli = !!props.pemMulai || !!props.pemSelesai;
+  const pemBeliAktif = isInPeriode(props.pemMulai, props.pemSelesai);
+  const pemBeliEnded = isPeriodeEnded(props.pemSelesai);
+  const pemBeliStarted = isPeriodeStarted(props.pemMulai);
+
+  // ── Periode Pengerjaan paket yang sedang dipilih ───────────────────────────
+  const selectedFitur = fiturList.find((f) => f.name === paket);
+  const periodeStart = selectedFitur?.start || null;
+  const periodeEnd = selectedFitur?.end || null;
+  const periodeAktif = isInPeriode(periodeStart, periodeEnd);
+  const periodeEnded = isPeriodeEnded(periodeEnd);
+  const periodeNotStarted = !isPeriodeStarted(periodeStart);
+
+  // ── Kondisi tombol beli ────────────────────────────────────────────────────
+  const hanyaGratis = fiturList.length === 1 && fiturList[0].name === "Gratis";
+  const sudahPunyaGratis = detailPurchased?.isFreeTO === true;
+  const isGratisExpired = isPeriodeEnded(props.endGratis);
+  const hideBeliButton = hanyaGratis && sudahPunyaGratis;
+
+  // Nonaktifkan tombol beli jika:
+  // - periode pembelian ada tapi tidak aktif, ATAU
+  // - periode pengerjaan paket yang dipilih sudah berakhir
+  const beliDisabled =
+    (adaPeriodeBeli && !pemBeliAktif) || periodeEnded || periodeNotStarted;
+
+  // ── Normalizer tanggal (dipertahankan dari kode asli) ─────────────────────
+  const normalizeDate = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!datTransaksi && !detailPurchased && !detailSoal) {
       router.push("/tryout");
@@ -69,15 +193,7 @@ export default function PaketTryout() {
     return null;
   }
 
-  const hanyaGratis = fiturList.length === 1 && fiturList[0].name === "Gratis";
-  const sudahPunyaGratis = detailPurchased?.isFreeTO === true;
-  const hideBeliButton = hanyaGratis && sudahPunyaGratis;
-  const normalizeDate = (date) => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
-
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="p-7 font-poppins my-7">
       {/* Header */}
@@ -90,21 +206,38 @@ export default function PaketTryout() {
             </h2>
             <p className="text-xs mb-2">Jenis Paket</p>
 
+            {/* ── INFO PERIODE PEMBELIAN (BARU) ── */}
+            {adaPeriodeBeli && (
+              <div className="mb-3 space-y-1">
+                <PeriodeInfo
+                  label="Periode pembelian"
+                  start={props.pemMulai}
+                  end={props.pemSelesai}
+                />
+                {pemBeliEnded && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+                    ⛔ Pembelian sudah ditutup sejak {fmtDate(props.pemSelesai)}
+                    .
+                  </p>
+                )}
+                {/* {!pemBeliStarted && (
+                  <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-md">
+                    ⏳ Pembelian belum dibuka. Cek kembali pada{" "}
+                    {fmtDate(props.pemMulai)}.
+                  </p>
+                )} */}
+              </div>
+            )}
+
             <div className="space-y-3">
               <div className="flex flex-col gap-4 text-xs">
                 {fiturList.map((item) => {
-                  // ✅ Cek apakah tanggal gratis sudah lewat
-                  const endGratis =
-                    datTransaksi?.to_data?.properties?.endGratis;
-                  const isGratisExpired =
+                  const endGratis = props.endGratis;
+                  const isGratisExp =
                     endGratis && new Date() > new Date(endGratis);
-
-                  // Sembunyikan tombol "Gratis" jika:
-                  // 1. User sudah beli (isFreeTO) ATAU
-                  // 2. Tanggal endGratis sudah lewat
                   const isHidden =
                     item.name === "Gratis" &&
-                    (detailPurchased?.isFreeTO === true || isGratisExpired);
+                    (detailPurchased?.isFreeTO === true || isGratisExp);
 
                   return (
                     <label
@@ -128,13 +261,10 @@ export default function PaketTryout() {
                 <div className="text-xs">
                   {(() => {
                     const selected = fiturList.find((f) => f.name === paket);
-                    const endGratis = detailSoal?.properties?.endGratis;
-                    const isGratisExpired =
+                    const endGratis = props.endGratis;
+                    const isGratisExp =
                       endGratis && new Date() > new Date(endGratis);
-
-                    // Sembunyikan harga Rp 0 jika paket Gratis & sudah expired
-                    if (paket === "Gratis" && isGratisExpired) return null;
-
+                    if (paket === "Gratis" && isGratisExp) return null;
                     return (
                       <p className="font-semibold">
                         Harga:{" "}
@@ -146,26 +276,52 @@ export default function PaketTryout() {
                   })()}
                 </div>
               )}
+
+              {/* ── INFO PERIODE PENGERJAAN paket terpilih (BARU) ── */}
+              {paket && (
+                <div className="space-y-1">
+                  <PeriodeInfo
+                    label={`Periode pengerjaan ${paket}`}
+                    start={periodeStart}
+                    end={periodeEnd}
+                  />
+                  {periodeEnded && (
+                    <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+                      ⌛ Waktu pengerjaan paket {paket} telah berakhir pada{" "}
+                      {fmtDate(periodeEnd)}.
+                    </p>
+                  )}
+                  {periodeNotStarted && (
+                    <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-md">
+                      📅 Pengerjaan paket {paket} baru bisa dimulai pada{" "}
+                      {fmtDate(periodeStart)}.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Tombol Mulai Kerjakan (tidak diubah dari asli) */}
             {detailPurchased && (
               <button
                 type="button"
                 onClick={() => router.push("/detail-to/summary")}
                 className={`
-      ${
-        detailPurchased?.isFreeTO &&
-        normalizeDate(detailPurchased?.toStart) <
-          normalizeDate(detailSoal?.properties.endGratis)
-          ? ""
-          : "hidden"
-      }
-      ${
-        normalizeDate(detailPurchased?.toStart) > normalizeDate(new Date())
-          ? "disabled cursor-not-allowed opacity-50"
-          : "cursor-pointer"
-      }
-      text-white px-4 py-2 rounded-md text-xs bg-primary mt-2
-    `}
+                  ${
+                    detailPurchased?.isFreeTO &&
+                    normalizeDate(detailPurchased?.toStart) <
+                      normalizeDate(props.endGratis)
+                      ? ""
+                      : "hidden"
+                  }
+                  ${
+                    normalizeDate(detailPurchased?.toStart) >
+                    normalizeDate(new Date())
+                      ? "disabled cursor-not-allowed opacity-50"
+                      : "cursor-pointer"
+                  }
+                  text-white px-4 py-2 rounded-md text-xs bg-primary mt-2
+                `}
               >
                 {normalizeDate(detailPurchased?.toStart) >
                 normalizeDate(new Date())
@@ -181,48 +337,22 @@ export default function PaketTryout() {
               </button>
             )}
 
-            {/* <button
-              type="button"
-              onClick={async () => {
-                if (paket === "Gratis") {
-                  setLoading(true); // tampilkan modal loading
-                  await new Promise((resolve) => setTimeout(resolve, 2000));
-                  dispatch(
-                    addNewPropertiesTransaksi({
-                      harga: 0,
-                    })
-                  );
-                  router.push("/form-to");
-                } else {
-                  setLoading(true); // tampilkan modal loading
-                  await new Promise((resolve) => setTimeout(resolve, 2000));
-                  dispatch(
-                    addNewPropertiesTransaksi({
-                      harga: Number(detailSoal?.properties?.hargaPremium),
-                    })
-                  );
-                  router.push("/pembayaran");
-                }
-              }}
-              className="mt-2 bg-red-700 text-white px-4 py-2 rounded-md text-xs"
-            >
-              {paket === "Premium" ? "Beli" : "Daftar"} Sekarang
-            </button> */}
+            {/* Tombol Beli / Daftar (logika asli + disabled jika periode tidak aktif) */}
             {(() => {
-              const endGratis = detailSoal?.properties?.endGratis;
-              const isGratisExpired =
-                endGratis && new Date() > new Date(endGratis);
-
-              // Sembunyikan button jika:
-              // hideBeliButton ATAU (paket Gratis && endGratis sudah lewat)
+              const endGratis = props.endGratis;
+              const isGratisExp = endGratis && new Date() > new Date(endGratis);
               const shouldHide =
-                hideBeliButton || (paket === "Gratis" && isGratisExpired);
+                hideBeliButton || (paket === "Gratis" && isGratisExp);
 
               return (
                 !shouldHide && (
                   <button
                     type="button"
+                    disabled={beliDisabled}
                     onClick={async () => {
+                      // Jangan lanjut jika tombol seharusnya disabled
+                      if (beliDisabled) return;
+
                       setLoadingPage(true);
 
                       if (paket === "Gratis") {
@@ -230,19 +360,15 @@ export default function PaketTryout() {
                         router.push("/form-to");
                       } else if (
                         paket === "Premium" &&
-                        detailSoal?.properties?.hargaPremium > 0
+                        props.hargaPremium > 0
                       ) {
                         try {
                           const res = await createSnapTransaksi(
                             {
                               data_transaksi: {
                                 ...datTransaksi,
-                                harga: Number(
-                                  detailSoal?.properties?.hargaPremium,
-                                ),
-                                harga_akhir: Number(
-                                  detailSoal?.properties?.hargaPremium,
-                                ),
+                                harga: Number(props.hargaPremium),
+                                harga_akhir: Number(props.hargaPremium),
                               },
                               detail: dataUser,
                             },
@@ -259,20 +385,18 @@ export default function PaketTryout() {
                               title: "Info",
                               message: "Gagal membuat transaksi",
                             });
-                            return;
                           }
-                        } catch (error) {
+                        } catch {
                           setLoadingPage(false);
                           setAlert({
                             type: "error",
                             title: "Info",
                             message: "Gagal membuat transaksi",
                           });
-                          return;
                         }
                       } else if (
                         paket === "Premium" &&
-                        detailSoal?.properties?.hargaPremium < 1
+                        props.hargaPremium < 1
                       ) {
                         try {
                           const res = await freeTOPremium(
@@ -294,18 +418,22 @@ export default function PaketTryout() {
                             });
                             router.push("/pembelian");
                           }
-                        } catch (error) {
+                        } catch {
                           setLoadingPage(false);
                           setAlert({
                             type: "error",
                             title: "Info",
                             message: "Gagal membuat transaksi",
                           });
-                          return;
                         }
                       }
                     }}
-                    className="mt-2 bg-red-700 text-white px-4 py-2 rounded-md text-xs"
+                    className={`mt-2 px-4 py-2 rounded-md text-xs text-white
+                      ${
+                        beliDisabled
+                          ? "bg-gray-400 cursor-not-allowed opacity-60"
+                          : "bg-red-700 cursor-pointer"
+                      }`}
                   >
                     {paket === "Premium" ? "Beli" : "Daftar"} Sekarang
                   </button>
@@ -315,7 +443,7 @@ export default function PaketTryout() {
           </div>
         </div>
 
-        {/* Gambar */}
+        {/* Gambar (tidak diubah) */}
         <div className="sm:w-1/2 flex items-center justify-start">
           <div className="rounded-xl overflow-hidden sm:w-[300px] sm:h-[200px] flex items-center justify-center bg-white">
             <Image
@@ -329,7 +457,7 @@ export default function PaketTryout() {
         </div>
       </div>
 
-      {/* Tabel Fasilitas */}
+      {/* Tabel Fasilitas (tidak diubah dari asli) */}
       <div className="mt-10 bg-white rounded-xl shadow p-4 overflow-x-auto">
         <table className="w-full text-sm text-left">
           <thead>
@@ -339,8 +467,7 @@ export default function PaketTryout() {
                 <th className="py-2">
                   Gratis
                   <div className="text-xs font-normal">
-                    {detailSoal?.properties.startGratis} s/d{" "}
-                    {detailSoal?.properties.endGratis}
+                    {props.startGratis} s/d {props.endGratis}
                   </div>
                 </th>
               ) : (
@@ -350,7 +477,7 @@ export default function PaketTryout() {
                 <th className="py-2">
                   Premium
                   <div className="text-xs font-normal">
-                    Tidak Ada Batas Periode Pengerjaan
+                    {/* Tidak Ada Batas Periode Pengerjaan */}
                   </div>
                 </th>
               ) : (
@@ -392,14 +519,13 @@ export default function PaketTryout() {
           </tbody>
         </table>
       </div>
+
       <PaymentModal
         open={openModal}
         onClose={() => setOpenModal(false)}
         paymentData={paymentData}
       />
-
       <LoadingModal show={loadingPage} />
-
       {alert && (
         <Alert
           type={alert.type}
