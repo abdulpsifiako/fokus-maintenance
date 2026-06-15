@@ -10,13 +10,14 @@ import Cookies from "js-cookie";
 import PaymentModal from "@/components/user/paymentModal";
 import Alert from "@/components/public/alert";
 import { freeTOPremium, freeTryout } from "@/lib/axios/tryout";
+import VoucherModal from "@/components/user/voucherModal"; // ← (1) import
 
 // ─── PERIODE HELPERS ──────────────────────────────────────────────────────────
 
-/** Normalisasi ke tengah malam agar perbandingan per hari, bukan per detik */
 const toDay = (dateStr) => {
-  if (!dateStr) return null;
+  if (!dateStr || dateStr.trim() === "") return null;
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
   d.setHours(0, 0, 0, 0);
   return d;
 };
@@ -27,17 +28,12 @@ const todayDay = () => {
   return d;
 };
 
-/**
- * Cek apakah hari ini berada di dalam periode [start, end].
- * Jika start kosong → tidak ada batas awal (sudah bisa).
- * Jika end kosong   → tidak ada batas akhir (tidak pernah berakhir).
- */
 const isInPeriode = (start, end) => {
   const now = todayDay();
   const s = toDay(start);
   const e = toDay(end);
-  if (s && now < s) return false; // belum mulai
-  if (e && now > e) return false; // sudah lewat
+  if (s && now < s) return false;
+  if (e && now > e) return false;
   return true;
 };
 
@@ -59,16 +55,12 @@ const fmtDate = (dateStr) => {
   });
 };
 
-// ─── PERIODE INFO BANNER ─────────────────────────────────────────────────────
-// Komponen kecil untuk menampilkan info periode — style mengikuti pola kode asli
-
 function PeriodeInfo({ label, start, end }) {
   const now = todayDay();
   const started = isPeriodeStarted(start);
   const ended = isPeriodeEnded(end);
   const active = started && !ended;
 
-  // Jika tidak ada start maupun end → unlimited, tidak perlu ditampilkan
   if (!start && !end) return null;
 
   let msg = "";
@@ -97,8 +89,6 @@ function PeriodeInfo({ label, start, end }) {
   );
 }
 
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-
 const fasilitas = [
   { nama: "Sistem CAB/CBT", gratis: true, premium: true },
   { nama: "Timer Ujian", gratis: true, premium: true },
@@ -110,8 +100,6 @@ const fasilitas = [
   { nama: "Komentar Postingan Instagram", gratis: false, premium: true },
   { nama: "Masa Aktif 6 Bulan", gratis: false, premium: true },
 ];
-
-// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export default function PaketTryout() {
   const token = Cookies.get("token");
@@ -129,9 +117,11 @@ export default function PaketTryout() {
 
   const [paket, setPaket] = useState("Premium");
 
+  // ── (2) State voucher ─────────────────────────────────────────────────────
+  const [openVoucherModal, setOpenVoucherModal] = useState(false);
+
   const props = detailSoal?.properties || {};
 
-  // mapping otomatis fitur dari data backend
   const fiturList = (props.fitur || []).map((fitur) => {
     const lower = fitur.toLowerCase();
     return {
@@ -143,13 +133,11 @@ export default function PaketTryout() {
     };
   });
 
-  // ── Periode Pembelian ──────────────────────────────────────────────────────
   const adaPeriodeBeli = !!props.pemMulai || !!props.pemSelesai;
   const pemBeliAktif = isInPeriode(props.pemMulai, props.pemSelesai);
   const pemBeliEnded = isPeriodeEnded(props.pemSelesai);
   const pemBeliStarted = isPeriodeStarted(props.pemMulai);
 
-  // ── Periode Pengerjaan paket yang sedang dipilih ───────────────────────────
   const selectedFitur = fiturList.find((f) => f.name === paket);
   const periodeStart = selectedFitur?.start || null;
   const periodeEnd = selectedFitur?.end || null;
@@ -157,26 +145,108 @@ export default function PaketTryout() {
   const periodeEnded = isPeriodeEnded(periodeEnd);
   const periodeNotStarted = !isPeriodeStarted(periodeStart);
 
-  // ── Kondisi tombol beli ────────────────────────────────────────────────────
   const hanyaGratis = fiturList.length === 1 && fiturList[0].name === "Gratis";
   const sudahPunyaGratis = detailPurchased?.isFreeTO === true;
   const isGratisExpired = isPeriodeEnded(props.endGratis);
   const hideBeliButton = hanyaGratis && sudahPunyaGratis;
 
-  // Nonaktifkan tombol beli jika:
-  // - periode pembelian ada tapi tidak aktif, ATAU
-  // - periode pengerjaan paket yang dipilih sudah berakhir
   const beliDisabled =
     (adaPeriodeBeli && !pemBeliAktif) || periodeEnded || periodeNotStarted;
 
-  // ── Normalizer tanggal (dipertahankan dari kode asli) ─────────────────────
   const normalizeDate = (date) => {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     return d;
   };
 
-  // ── Effects ───────────────────────────────────────────────────────────────
+  // ── (3) Logika pembayaran asli dipindah ke fungsi ini ────────────────────
+  // onLanjut dari VoucherModal memanggil ini dengan harga setelah potongan
+  const handleLanjutPembayaran = async ({
+    harga_akhir,
+    voucherCode,
+    potongan,
+  } = {}) => {
+    setOpenVoucherModal(false);
+    setLoadingPage(true);
+
+    // Pastikan harga berupa integer — Midtrans tidak menerima desimal atau string
+    const hargaAkhir = Math.floor(Number(harga_akhir) || 0);
+
+    if (paket === "Gratis") {
+      dispatch(addNewPropertiesTransaksi({ harga: 0 }));
+      router.push("/form-to");
+      return;
+    }
+
+    // Jika harga setelah voucher = 0 (diskon 100%) atau
+    // hargaPremium memang 0 dari backend → pakai freeTOPremium, bukan Midtrans
+    if (hargaAkhir < 1) {
+      try {
+        const res = await freeTOPremium(
+          {
+            data_transaksi: {
+              ...datTransaksi,
+              harga: 0,
+              harga_akhir: 0,
+            },
+          },
+          token,
+        );
+        if (res.status == 200) {
+          setLoadingPage(false);
+          setAlert({
+            type: "success",
+            title: "Info",
+            message: "Sukses menambahkan Tryout",
+          });
+          router.push("/pembelian");
+        }
+      } catch {
+        setLoadingPage(false);
+        setAlert({
+          type: "error",
+          title: "Info",
+          message: "Gagal membuat transaksi",
+        });
+      }
+      return;
+    }
+
+    // Harga > 0 → bayar via Midtrans Snap
+    try {
+      const res = await createSnapTransaksi(
+        {
+          data_transaksi: {
+            ...datTransaksi,
+            harga: hargaAkhir,
+            harga_akhir: hargaAkhir,
+          },
+          detail: dataUser,
+        },
+        token,
+      );
+      if (res.status == 200) {
+        setPaymentData(res.data.redirect_url);
+        setLoadingPage(false);
+        setOpenModal(true);
+      } else {
+        setLoadingPage(false);
+        setAlert({
+          type: "error",
+          title: "Info",
+          message: "Gagal membuat transaksi",
+        });
+      }
+    } catch {
+      setLoadingPage(false);
+      setAlert({
+        type: "error",
+        title: "Info",
+        message: "Gagal membuat transaksi",
+      });
+    }
+  };
+
   useEffect(() => {
     if (!datTransaksi && !detailPurchased && !detailSoal) {
       router.push("/tryout");
@@ -193,7 +263,6 @@ export default function PaketTryout() {
     return null;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="p-7 font-poppins my-7">
       {/* Header */}
@@ -206,7 +275,6 @@ export default function PaketTryout() {
             </h2>
             <p className="text-xs mb-2">Jenis Paket</p>
 
-            {/* ── INFO PERIODE PEMBELIAN (BARU) ── */}
             {adaPeriodeBeli && (
               <div className="mb-3 space-y-1">
                 <PeriodeInfo
@@ -220,12 +288,6 @@ export default function PaketTryout() {
                     .
                   </p>
                 )}
-                {/* {!pemBeliStarted && (
-                  <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 px-3 py-2 rounded-md">
-                    ⏳ Pembelian belum dibuka. Cek kembali pada{" "}
-                    {fmtDate(props.pemMulai)}.
-                  </p>
-                )} */}
               </div>
             )}
 
@@ -277,7 +339,6 @@ export default function PaketTryout() {
                 </div>
               )}
 
-              {/* ── INFO PERIODE PENGERJAAN paket terpilih (BARU) ── */}
               {paket && (
                 <div className="space-y-1">
                   <PeriodeInfo
@@ -301,7 +362,6 @@ export default function PaketTryout() {
               )}
             </div>
 
-            {/* Tombol Mulai Kerjakan (tidak diubah dari asli) */}
             {detailPurchased && (
               <button
                 type="button"
@@ -337,7 +397,7 @@ export default function PaketTryout() {
               </button>
             )}
 
-            {/* Tombol Beli / Daftar (logika asli + disabled jika periode tidak aktif) */}
+            {/* ── (4) Tombol beli — sekarang buka VoucherModal dulu ── */}
             {(() => {
               const endGratis = props.endGratis;
               const isGratisExp = endGratis && new Date() > new Date(endGratis);
@@ -349,84 +409,20 @@ export default function PaketTryout() {
                   <button
                     type="button"
                     disabled={beliDisabled}
-                    onClick={async () => {
-                      // Jangan lanjut jika tombol seharusnya disabled
+                    onClick={() => {
                       if (beliDisabled) return;
 
-                      setLoadingPage(true);
-
                       if (paket === "Gratis") {
-                        dispatch(addNewPropertiesTransaksi({ harga: 0 }));
-                        router.push("/form-to");
-                      } else if (
-                        paket === "Premium" &&
-                        props.hargaPremium > 0
-                      ) {
-                        try {
-                          const res = await createSnapTransaksi(
-                            {
-                              data_transaksi: {
-                                ...datTransaksi,
-                                harga: Number(props.hargaPremium),
-                                harga_akhir: Number(props.hargaPremium),
-                              },
-                              detail: dataUser,
-                            },
-                            token,
-                          );
-                          if (res.status == 200) {
-                            setPaymentData(res.data.redirect_url);
-                            setLoadingPage(false);
-                            setOpenModal(true);
-                          } else {
-                            setLoadingPage(false);
-                            setAlert({
-                              type: "error",
-                              title: "Info",
-                              message: "Gagal membuat transaksi",
-                            });
-                          }
-                        } catch {
-                          setLoadingPage(false);
-                          setAlert({
-                            type: "error",
-                            title: "Info",
-                            message: "Gagal membuat transaksi",
-                          });
-                        }
-                      } else if (
-                        paket === "Premium" &&
-                        props.hargaPremium < 1
-                      ) {
-                        try {
-                          const res = await freeTOPremium(
-                            {
-                              data_transaksi: {
-                                ...datTransaksi,
-                                harga: 0,
-                                harga_akhir: 0,
-                              },
-                            },
-                            token,
-                          );
-                          if (res.status == 200) {
-                            setLoadingPage(false);
-                            setAlert({
-                              type: "success",
-                              title: "Info",
-                              message: "Sukses menambahkan Tryout",
-                            });
-                            router.push("/pembelian");
-                          }
-                        } catch {
-                          setLoadingPage(false);
-                          setAlert({
-                            type: "error",
-                            title: "Info",
-                            message: "Gagal membuat transaksi",
-                          });
-                        }
+                        handleLanjutPembayaran({
+                          harga_akhir: 0,
+                          voucherCode: "",
+                          potongan: 0,
+                        });
+                        return;
                       }
+
+                      // Premium → buka modal voucher/referral dulu
+                      setOpenVoucherModal(true);
                     }}
                     className={`mt-2 px-4 py-2 rounded-md text-xs text-white
                       ${
@@ -532,6 +528,15 @@ export default function PaketTryout() {
           title={alert.title}
           message={alert.message}
           onClose={() => setAlert(null)}
+        />
+      )}
+
+      {/* ── (5) VoucherModal ── */}
+      {openVoucherModal && (
+        <VoucherModal
+          harga={Number(props.hargaPremium)}
+          onClose={() => setOpenVoucherModal(false)}
+          onLanjut={handleLanjutPembayaran}
         />
       )}
     </div>

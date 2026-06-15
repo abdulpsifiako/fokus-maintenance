@@ -33,7 +33,7 @@ export default function KelasOnlinePage() {
       const res = await getProgramku(jenis, token);
       setDataProgram(res.data);
     },
-    [jenis, token]
+    [jenis, token],
   );
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function KelasOnlinePage() {
         {dataProgram && dataProgram.length > 0 && (
           <section className="mb-10">
             <h2 className="text-primary text-lg sm:text-xl font-semibold mb-3">
-              Kelas Onlineku
+              Live Classku
             </h2>
 
             <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-3">

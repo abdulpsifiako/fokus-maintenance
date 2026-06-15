@@ -261,8 +261,8 @@ export default function Navigation() {
             <Image
               src="/LOGO.png"
               alt="FokusEdu"
-              height={150}
-              width={150}
+              height={100}
+              width={100}
               priority
             />
           </Link>

@@ -28,62 +28,90 @@ import {
   EyeOff,
 } from "lucide-react";
 import PasswordButton from "@/components/user/passwordBotton";
+import VoucherModal from "@/components/user/voucherModal"; // ← (1) import
 
 export default function DetailKelasZoom() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const token = Cookies.get("token");
+  const programId = router.query.id;
 
   const datTransaksi = useSelector((state) => state.transaksi.program_utama);
+  const dataKelas = useSelector((state) => state.tryout.detailKelasonline);
+  const dataUser = useSelector((state) => state.user.detail);
+
   const [loading, setLoading] = useState(false);
   const [paymentData, setPaymentData] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [alert, setAlert] = useState(null);
-  const token = Cookies.get("token");
-  const dispatch = useDispatch();
-  const programId = router.query.id;
 
+  // ── (2) State voucher ─────────────────────────────────────────────────────
+  const [openVoucherModal, setOpenVoucherModal] = useState(false);
+
+  // ── (3) Fix: userHasPurchased hanya true jika isPurchased === true ────────
+  // Sebelumnya: setUserHasPurchased(res.data) → semua status (pending pun) dianggap punya akses
+  // Sesudah   : cek isPurchased boolean dari response
   const [userHasPurchased, setUserHasPurchased] = useState(false);
 
   const getTransaksiProgram = useCallback(async () => {
     try {
       const res = await getTransaksiPembelian(programId, token, "Kelas Online");
-      //  //  console.log(res);
-      setUserHasPurchased(res.data);
+      // Buka akses konten hanya jika isPurchased atau isActive = true
+      setUserHasPurchased(
+        res.data?.isPurchased === true || res.data?.isActive === true,
+      );
     } catch (error) {
-      // //  //  console.log(error)
+      setUserHasPurchased(false);
     }
   }, [programId, token]);
 
   useEffect(() => {
     getTransaksiProgram();
   }, [getTransaksiProgram]);
-  const dataKelas = useSelector((state) => state.tryout.detailKelasonline);
-  const dataUser = useSelector((state) => state.user.detail);
 
-  const handleBeli = async () => {
-    // dispatch(
-    //   addTransaksiProgramUtama({
-    //     user_id: dataUser.id,
-    //     jenis: "Kelas Online",
-    //     program_id: dataKelas.id,
-    //     status: "CREATED",
-    //     program_name: dataKelas.properties.judul,
-    //     kelas_data: dataKelas,
-    //     harga: dataKelas.properties.diskon
-    //       ? Number(
-    //           dataKelas.properties.harga -
-    //             (dataKelas.properties.diskon / 100) * dataKelas.properties.harga
-    //         )
-    //       : Number(dataKelas.properties.harga),
-    //     harga_akhir: dataKelas.properties.diskon
-    //       ? Number(
-    //           dataKelas.properties.harga -
-    //             (dataKelas.properties.diskon / 100) * dataKelas.properties.harga
-    //         )
-    //       : Number(dataKelas.properties.harga),
-    //   })
-    // );
-    // router.push("/pembayaran");
+  // ── Hitung harga setelah diskon ───────────────────────────────────────────
+  const hargaAsli = Number(dataKelas?.properties?.harga || 0);
+  const diskon = Number(dataKelas?.properties?.diskon || 0);
+  const hargaSetelahDiskon = diskon
+    ? Math.floor(hargaAsli - (diskon / 100) * hargaAsli)
+    : hargaAsli;
+
+  // ── (4) Handler lanjut pembayaran (dipanggil dari VoucherModal) ───────────
+  const handleLanjutPembayaran = async ({
+    harga_akhir,
+    voucherCode,
+    potongan,
+  } = {}) => {
+    setOpenVoucherModal(false);
+    setLoading(true);
+
+    const hargaFinal = Math.floor(Number(harga_akhir) || 0);
+
     try {
+      // Gratis (harga 0 dari backend atau voucher 100%)
+      if (hargaFinal < 1) {
+        dispatch(
+          addTransaksiProgramUtama({
+            user_id: dataUser.id,
+            jenis: "Kelas Online",
+            program_id: dataKelas.id,
+            status: "CREATED",
+            program_name: dataKelas.properties.judul,
+            kelas_data: dataKelas,
+            harga: 0,
+          }),
+        );
+        const res = await createTransaksiFreeKelas(
+          { data_transaksi: datTransaksi },
+          token,
+        );
+        if (res.status === 200) {
+          router.push("/pembelian");
+        }
+        return;
+      }
+
+      // Berbayar → Midtrans Snap
       const res = await createSnapTransaksi(
         {
           data_transaksi: {
@@ -93,66 +121,31 @@ export default function DetailKelasZoom() {
             status: "CREATED",
             program_name: dataKelas.properties.judul,
             kelas_data: dataKelas,
-            harga: dataKelas.properties.diskon
-              ? Number(
-                  dataKelas.properties.harga -
-                    (dataKelas.properties.diskon / 100) *
-                      dataKelas.properties.harga
-                )
-              : Number(dataKelas.properties.harga),
-            harga_akhir: dataKelas.properties.diskon
-              ? Number(
-                  dataKelas.properties.harga -
-                    (dataKelas.properties.diskon / 100) *
-                      dataKelas.properties.harga
-                )
-              : Number(dataKelas.properties.harga),
+            harga: hargaFinal,
+            harga_akhir: hargaFinal,
           },
           detail: dataUser,
         },
-        token
+        token,
       );
-      if (res.status == 200) {
+      if (res.status === 200) {
         setPaymentData(res.data.redirect_url);
-        setLoading(false);
         setOpenModal(true);
       } else {
-        setLoading(false);
         setAlert({
           type: "error",
           title: "Info",
           message: "Gagal membuat transaksi",
         });
-        return;
       }
-    } catch (error) {
-      setLoading(false);
+    } catch {
       setAlert({
         type: "error",
         title: "Info",
         message: "Gagal membuat transaksi",
       });
-      return;
-    }
-  };
-  const handleRpNol = async () => {
-    dispatch(
-      addTransaksiProgramUtama({
-        user_id: dataUser.id,
-        jenis: "Kelas Online",
-        program_id: dataKelas.id,
-        status: "CREATED",
-        program_name: dataKelas.properties.judul,
-        kelas_data: dataKelas,
-        harga: 0,
-      })
-    );
-    const res = await createTransaksiFreeKelas(
-      { data_transaksi: datTransaksi },
-      token
-    );
-    if (res.status == 200) {
-      router.push("/pembelian");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -160,7 +153,7 @@ export default function DetailKelasZoom() {
     <div className="px-7 font-poppins mt-5">
       {/* Header */}
       <p className="text-xs text-gray-500 mb-2">
-        Kelas Online &gt;{" "}
+        Live Class &gt;{" "}
         <span className="font-semibold">
           {userHasPurchased ? dataKelas.properties.judul : "Daftar Sekarang"}
         </span>
@@ -178,15 +171,10 @@ export default function DetailKelasZoom() {
         {!userHasPurchased && (
           <>
             <div className="text-red-700 font-bold text-xl mt-4">
-              Rp{" "}
-              {dataKelas.properties.diskon
-                ? parseInt(
-                    dataKelas.properties.harga -
-                      (dataKelas.properties.diskon / 100) *
-                        dataKelas.properties.harga
-                  ).toLocaleString()
-                : parseInt(dataKelas.properties.harga).toLocaleString()}
+              Rp {hargaSetelahDiskon.toLocaleString()}
             </div>
+
+            {/* ── (5) Tombol beli — buka VoucherModal dulu ── */}
             <button
               type="button"
               onClick={async () => {
@@ -194,25 +182,27 @@ export default function DetailKelasZoom() {
                   router.push("/auth/login");
                   return;
                 }
-                setLoading(true); // tampilkan modal langsung
 
-                try {
-                  if (dataKelas.properties.harga == 0) {
+                // Harga 0 dari backend → langsung gratis tanpa voucher
+                if (hargaAsli === 0) {
+                  setLoading(true);
+                  try {
                     await Promise.all([
-                      handleRpNol(),
-                      new Promise((resolve) => setTimeout(resolve, 2000)), // minimal tampil 2 detik
+                      handleLanjutPembayaran({
+                        harga_akhir: 0,
+                        voucherCode: "",
+                        potongan: 0,
+                      }),
+                      new Promise((resolve) => setTimeout(resolve, 2000)),
                     ]);
-                  } else {
-                    await Promise.all([
-                      handleBeli(),
-                      new Promise((resolve) => setTimeout(resolve, 2000)), // minimal tampil 2 detik
-                    ]);
+                  } finally {
+                    setLoading(false);
                   }
-                } catch (error) {
-                  // //  //  console.log(error)
-                } finally {
-                  setLoading(false); // sembunyikan modal setelah semua selesai
+                  return;
                 }
+
+                // Berbayar → buka modal voucher dulu
+                setOpenVoucherModal(true);
               }}
               className="mt-2 bg-red-700 text-white px-4 py-2 rounded-md text-sm"
             >
@@ -222,7 +212,7 @@ export default function DetailKelasZoom() {
         )}
       </div>
 
-      {/* Grid Content */}
+      {/* Grid Content — tidak diubah dari asli */}
       <div className="grid md:grid-cols-3 gap-6">
         {/* Tentang Paket */}
         <div className="bg-white rounded-md mt-3">
@@ -292,13 +282,12 @@ export default function DetailKelasZoom() {
                   key={i}
                   className="border rounded-xl p-4 bg-white shadow-sm"
                 >
-                  {/* HEADER */}
                   <p className="font-medium text-gray-800">
                     {tanggalFormatted} | {item.mulai} – {item.selesai} WIB
                   </p>
                   <p className="text-sm text-gray-600 mt-1">{item.materi}</p>
 
-                  {/* ACTIONS */}
+                  {/* Konten hanya tampil jika isPurchased/isActive = true */}
                   {userHasPurchased && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {item.link_modul && (
@@ -351,6 +340,7 @@ export default function DetailKelasZoom() {
           </ul>
         </div>
       </div>
+
       <LoadingModal show={loading} />
       <PaymentModal
         open={openModal}
@@ -363,6 +353,15 @@ export default function DetailKelasZoom() {
           title={alert.title}
           message={alert.message}
           onClose={() => setAlert(null)}
+        />
+      )}
+
+      {/* ── (6) VoucherModal ── */}
+      {openVoucherModal && (
+        <VoucherModal
+          harga={hargaSetelahDiskon}
+          onClose={() => setOpenVoucherModal(false)}
+          onLanjut={handleLanjutPembayaran}
         />
       )}
     </div>
