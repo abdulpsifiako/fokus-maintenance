@@ -130,7 +130,10 @@ module.exports = {
           { judul: `%${search}%` },
         )
         .andWhere("properties ->> 'status' = 'true'")
-        .andWhere("is_deleted = :isDeleted", { isDeleted: false });
+        .andWhere("is_deleted = :isDeleted", { isDeleted: false })
+        .andWhere(
+          "(properties ->> 'aktiUntil' IS NULL OR properties ->> 'aktiUntil' = '' OR (properties ->> 'aktiUntil')::date >= CURRENT_DATE)",
+        );
       if (jenis) {
         query = query.andWhere(
           "(LOWER(properties ->> 'jenis') LIKE LOWER(:jenis) OR properties ->> 'jenis' IS NULL)",
