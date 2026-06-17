@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, FileSpreadsheet } from "lucide-react";
 import Editor from "./editor";
 import { v4 as uuidv4 } from "uuid";
+import { ImportSoalModalTO } from "./importSoalModalTO"; // ← (1) modal khusus TO (tanpa Sub Materi)
 
 export const SoalItemTO = ({ index, form, setForm, onClose }) => {
   const soal = form?.materi[index];
   const [activeSoal, setActiveSoal] = useState(0); // soal yang sedang ditampilkan
+  const [showImport, setShowImport] = useState(false); // ← (2) state modal import
 
   const [formSoal, setFormSoal] = useState({
     id: uuidv4(),
@@ -43,7 +45,9 @@ export const SoalItemTO = ({ index, form, setForm, onClose }) => {
     setForm((prev) => {
       const updatedMateri = [...prev.materi];
       const targetMateri = { ...updatedMateri[index] };
-      const updatedSoal = targetMateri.data_soal.filter((_, i) => i !== posisiSoal);
+      const updatedSoal = targetMateri.data_soal.filter(
+        (_, i) => i !== posisiSoal,
+      );
 
       targetMateri.data_soal = updatedSoal;
       updatedMateri[index] = targetMateri;
@@ -81,7 +85,10 @@ export const SoalItemTO = ({ index, form, setForm, onClose }) => {
       const updatedSoal = [...targetMateri.data_soal];
       const targetSoal = { ...updatedSoal[posisi] };
 
-      targetSoal.opsi = [...(targetSoal.opsi || []), { id: uuidv4(), text: "", poin: 0 }];
+      targetSoal.opsi = [
+        ...(targetSoal.opsi || []),
+        { id: uuidv4(), text: "", poin: 0 },
+      ];
 
       updatedSoal[posisi] = targetSoal;
       targetMateri.data_soal = updatedSoal;
@@ -131,6 +138,40 @@ export const SoalItemTO = ({ index, form, setForm, onClose }) => {
     });
   };
 
+  // ── (3) Handler hasil import — APPEND ke data_soal materi aktif ──────────
+  // Struktur di sini beda dari LatihanAdd: tiap soal & opsi punya `id` uuid,
+  // dan tidak ada field `submateri` per soal (soal sudah dikelompokkan per materi).
+  // Sub Materi dari Excel diabaikan di sini, hanya pertanyaan/opsi/kunci/pembahasan dipakai.
+  const handleImportSoal = (soalBaru) => {
+    setForm((prev) => {
+      const updatedMateri = [...prev.materi];
+      const targetMateri = { ...updatedMateri[index] };
+
+      const soalUntukDitambah = soalBaru.map((s) => ({
+        id: uuidv4(),
+        pertanyaan: s.pertanyaan,
+        opsi: s.opsi.map((o) => ({ id: uuidv4(), text: o.text, poin: o.poin })),
+        kunci: s.kunci,
+        pembahasan: s.pembahasan,
+      }));
+
+      const updatedSoal = [
+        ...(targetMateri.data_soal || []),
+        ...soalUntukDitambah,
+      ];
+      targetMateri.data_soal = updatedSoal;
+      updatedMateri[index] = targetMateri;
+
+      return { ...prev, materi: updatedMateri };
+    });
+
+    // Pindah fokus ke soal pertama hasil import
+    setActiveSoal((prevActive) => {
+      const jumlahSebelumImport = soal?.data_soal?.length || 0;
+      return jumlahSebelumImport; // index soal pertama hasil import
+    });
+  };
+
   const dataSoal = soal?.data_soal || [];
   const currentSoal = dataSoal[activeSoal];
 
@@ -146,7 +187,19 @@ export const SoalItemTO = ({ index, form, setForm, onClose }) => {
           <X size={20} />
         </button>
 
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">Kelola Soal</h2>
+        <div className="flex items-center justify-between mb-4 pr-8">
+          <h2 className="text-lg font-semibold text-gray-800">Kelola Soal</h2>
+
+          {/* ── (4) Tombol Import Excel ── */}
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-green-600 text-green-600 rounded-md text-xs font-semibold hover:bg-green-50"
+          >
+            <FileSpreadsheet size={14} />
+            Import Excel
+          </button>
+        </div>
 
         {/* 🔢 Navigasi Nomor Soal */}
         <div className="flex flex-wrap gap-2 mb-4">
@@ -175,7 +228,9 @@ export const SoalItemTO = ({ index, form, setForm, onClose }) => {
         {currentSoal ? (
           <div className="border border-gray-300 rounded-lg p-4 mb-6">
             <div className="flex justify-between items-center mb-2">
-              <h4 className="font-semibold text-gray-700">Soal {activeSoal + 1}</h4>
+              <h4 className="font-semibold text-gray-700">
+                Soal {activeSoal + 1}
+              </h4>
               {dataSoal.length > 1 && (
                 <button
                   type="button"
@@ -235,7 +290,7 @@ export const SoalItemTO = ({ index, form, setForm, onClose }) => {
                           activeSoal,
                           i,
                           "poin",
-                          Number(e.target.value)
+                          Number(e.target.value),
                         )
                       }
                     />
@@ -290,6 +345,14 @@ export const SoalItemTO = ({ index, form, setForm, onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* ── (5) Modal Import Excel (versi Tryout — tanpa Sub Materi) ── */}
+      {showImport && (
+        <ImportSoalModalTO
+          onClose={() => setShowImport(false)}
+          onImport={handleImportSoal}
+        />
+      )}
     </div>
   );
 };

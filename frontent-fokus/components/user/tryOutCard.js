@@ -209,6 +209,7 @@ export default function TryoutCard({ filterBar, search, filter }) {
         questions: allSoal.length,
         status: oldData.properties?.status ?? true,
         link: oldData.properties?.link ?? "",
+        op_pembahasan: oldData.properties?.op_pembahasan ?? "",
       };
     };
 

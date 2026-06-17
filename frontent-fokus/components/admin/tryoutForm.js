@@ -203,7 +203,7 @@ export default function TryOutForm({ mode, onBack, data }) {
       );
     }
   }, [mode, data]);
-  console.log(data);
+
   return (
     <div className="">
       <h2 className="text-2xl font-bold text-red-700 mb-2">

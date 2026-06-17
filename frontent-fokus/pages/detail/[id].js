@@ -241,7 +241,11 @@ export default function VideoFokusEdu() {
               <div className="relative">
                 {selectedVideo ? (
                   <VideoPlayer
-                    videoUrl={`${selectedVideo.videoUrl} || ${process.env.NEXT_PUBLIC_API_URL}/landing/video/${selectedVideo.videoUrl}`}
+                    videoUrl={
+                      selectedVideo.videoUrl?.startsWith("http")
+                        ? selectedVideo.videoUrl
+                        : `${process.env.NEXT_PUBLIC_API_URL}/landing/video/${selectedVideo.videoUrl}`
+                    }
                     poster={`${process.env.NEXT_PUBLIC_API_URL}/landing/images/${selectedVideo?.thumbnail}`}
                     upload={true}
                     data={selectedVideo}

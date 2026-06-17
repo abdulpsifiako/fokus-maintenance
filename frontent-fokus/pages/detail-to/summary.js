@@ -17,8 +17,9 @@ import Link from "next/link";
 // ─── PERIODE HELPERS ──────────────────────────────────────────────────────────
 
 const toDay = (dateStr) => {
-  if (!dateStr) return null;
+  if (!dateStr || String(dateStr).trim() === "") return null;
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
   d.setHours(0, 0, 0, 0);
   return d;
 };
@@ -29,11 +30,6 @@ const todayDay = () => {
   return d;
 };
 
-/**
- * Cek apakah hari ini berada di dalam periode [start, end].
- * Jika start kosong → tidak ada batas awal.
- * Jika end kosong   → tidak ada batas akhir.
- */
 const isInPeriode = (start, end) => {
   const now = todayDay();
   const s = toDay(start);
@@ -62,17 +58,40 @@ const fmtDate = (dateStr) => {
 };
 
 /**
- * Cek apakah tombol latihan bisa diklik.
- * Bisa diklik jika setidaknya SATU fitur aktif periodenya.
- * Fitur tanpa periode (kosong semua) dianggap unlimited → aktif.
+ * Tentukan fitur mana yang dipakai untuk cek periode pengerjaan.
+ *
+ * Aturan:
+ * - Kalau fitur ada Gratis DAN Premium → pakai Premium
+ * - Kalau hanya Gratis                 → pakai Gratis
+ * - Kalau hanya Premium                → pakai Premium
+ *
+ * @param {object}   props      - dataSoal.properties
+ * @param {string[]} ownedFitur - fitur yang dimiliki user dari cekTryout
+ *                                kosong = belum tahu, cek semua (fallback)
  */
-const getPeriodeLatihanStatus = (props) => {
-  const fiturList = props?.fitur || [];
+const getPeriodeLatihanStatus = (props, ownedFitur = []) => {
+  const allFitur = props?.fitur || [];
 
-  // Tidak ada fitur sama sekali → tidak ada batasan → boleh kerjakan
-  if (!fiturList.length) return { bisaDiklik: true, statuses: [] };
+  // Tidak ada fitur → tidak ada batasan → boleh kerjakan
+  if (!allFitur.length) return { bisaDiklik: true, statuses: [] };
 
-  const statuses = fiturList.map((fitur) => {
+  // Tentukan fitur target berdasarkan yang dimiliki user
+  // Kalau ownedFitur kosong → gunakan semua fitur di props (fallback)
+  const candidateFitur = ownedFitur.length
+    ? allFitur.filter((f) => ownedFitur.includes(f))
+    : allFitur;
+
+  if (!candidateFitur.length) return { bisaDiklik: false, statuses: [] };
+
+  // Aturan: jika ada Gratis DAN Premium → prioritaskan Premium
+  const hasGratis = candidateFitur.includes("Gratis");
+  const hasPremium = candidateFitur.includes("Premium");
+  const targetFitur =
+    hasGratis && hasPremium
+      ? ["Premium"] // keduanya ada → pakai Premium
+      : candidateFitur; // salah satu saja → pakai apa adanya
+
+  const statuses = targetFitur.map((fitur) => {
     const start = props[`start${fitur}`] || null;
     const end = props[`end${fitur}`] || null;
     return {
@@ -86,19 +105,13 @@ const getPeriodeLatihanStatus = (props) => {
   });
 
   const bisaDiklik = statuses.some((s) => s.aktif);
-
   return { bisaDiklik, statuses };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Total nilai maksimal
 const totalMax = 220;
-
-const nilai = {
-  manaso: 120,
-  wawancara: 65,
-};
+const nilai = { manaso: 120, wawancara: 65 };
 
 export default function DetailSummaryTO() {
   const [loading, setLoading] = useState(false);
@@ -109,35 +122,43 @@ export default function DetailSummaryTO() {
   const programId = searchParams.get("id");
 
   const [dataRapor, setDataRapor] = useState(null);
-
-  const [userHasPurchased, setUserHasPurchased] = useState(false);
+  const [userHasPurchased, setUserHasPurchased] = useState(null); // null = belum tahu
   const dataLatihan = useSelector((state) => state.tryout.dataLatihan);
   const [mengerjakan, setMengerjakan] = useState(false);
   const openPembahasan = useSelector((state) => state.tryout.op_pembahasan);
-
   const dataSoal = useSelector((state) => state.tryout.dataSoal);
 
   const [open, setOpen] = useState(false);
   const detailPurchased = useSelector((state) => state.tryout.purchased);
+
   const total = nilai.manaso + nilai.wawancara;
   const percentManaso = (nilai.manaso / totalMax) * 100;
   const percentWawancara = (nilai.wawancara / totalMax) * 100;
   const percentSisa = 100 - (percentManaso + percentWawancara);
-
   const [maxPoin, setMaxPoin] = useState(0);
 
-  // ── Cek periode pengerjaan dari dataSoal.properties ───────────────────────
+  // Tentukan fitur yang dimiliki user dari response cekTryout:
+  // isFreeTO = true              → punya Gratis
+  // isPurchase = true            → punya Premium
+  // Keduanya bisa true sekaligus (user upgrade dari Gratis ke Premium)
+  const ownedFitur = userHasPurchased
+    ? [
+        ...(userHasPurchased.isFreeTO ? ["Gratis"] : []),
+        ...(userHasPurchased.isPurchase ? ["Premium"] : []),
+      ]
+    : []; // belum tahu → fallback cek semua
+
+  // ── Cek periode berdasarkan fitur yang dimiliki ───────────────────────────
   const { bisaDiklik, statuses } = getPeriodeLatihanStatus(
     dataSoal?.properties || {},
+    ownedFitur,
   );
 
-  // Keterangan singkat untuk ditampilkan di bawah tombol
+  // Keterangan singkat di bawah tombol
   const periodeInfo = (() => {
     if (!statuses.length) return null;
-
     const now = todayDay();
 
-    // Cari fitur yang aktif → tampilkan sisa waktu
     const aktif = statuses.find((s) => s.aktif);
     if (aktif) {
       const endDay = toDay(aktif.end);
@@ -151,7 +172,6 @@ export default function DetailSummaryTO() {
       return null; // unlimited, tidak perlu info
     }
 
-    // Semua ended
     if (statuses.every((s) => s.ended)) {
       const last = statuses.reduce((a, b) =>
         new Date(a.end) > new Date(b.end) ? a : b,
@@ -162,7 +182,6 @@ export default function DetailSummaryTO() {
       };
     }
 
-    // Ada yang belum mulai
     const belum = statuses.find((s) => s.belum);
     if (belum) {
       const diff = Math.round((toDay(belum.start) - now) / 86400000);
@@ -205,7 +224,6 @@ export default function DetailSummaryTO() {
           pembahasan: s.pembahasan || "",
         })),
       );
-
       return {
         id: oldData.id || null,
         jenis: "Tryout",
@@ -223,7 +241,6 @@ export default function DetailSummaryTO() {
         status: oldData.properties?.status ?? true,
       };
     };
-
     const data = transformData(dataSoal);
     dispatch(addDataLatihan(data));
     router.push("/detail-to/latihan-soal");
@@ -243,31 +260,26 @@ export default function DetailSummaryTO() {
         token,
       );
       const raporData = res.data[0];
-      if (raporData) {
-        setMengerjakan(true);
-      }
+      if (raporData) setMengerjakan(true);
 
-      const dataSoal = raporData.properties.data_soal.datasoal;
+      const dataSoalRapor = raporData.properties.data_soal.datasoal;
       const dataAnswer = raporData.properties.data_answer;
 
-      const maxPoin = dataSoal.reduce((total, soal) => {
+      const maxPoinVal = dataSoalRapor.reduce((total, soal) => {
         if (soal.opsi.length > 0) {
-          const poinTertinggi = Math.max(...soal.opsi.map((o) => o.poin));
-          return total + poinTertinggi;
+          return total + Math.max(...soal.opsi.map((o) => o.poin));
         }
         return total;
       }, 0);
-
-      setMaxPoin(maxPoin);
+      setMaxPoin(maxPoinVal);
 
       const poinPerMateri = {};
       let totalUserPoin = 0;
 
       Object.entries(dataAnswer).forEach(([index, jawaban]) => {
-        const soal = dataSoal[index];
+        const soal = dataSoalRapor[index];
         if (!soal) return;
-        const opsiIndex = jawaban.option;
-        const poinDiperoleh = soal.opsi[opsiIndex]?.poin || 0;
+        const poinDiperoleh = soal.opsi[jawaban.option]?.poin || 0;
         const namaMateri = soal.nama_materi;
         const passing = soal.passing_grade;
 
@@ -280,7 +292,6 @@ export default function DetailSummaryTO() {
             jumlahSoal: 0,
           };
         }
-
         poinPerMateri[namaMateri].totalPoin += poinDiperoleh;
         poinPerMateri[namaMateri].jumlahSoal += 1;
       });
@@ -299,40 +310,36 @@ export default function DetailSummaryTO() {
       setDataRapor(res.data);
       setDetailMateri(hasilPerMateri);
       setTotalSkor(totalUserPoin);
-    } catch (error) {
-      // console.log("❌ Gagal fetch rapor:", error);
-    }
+    } catch (error) {}
   }, [dataLatihan?.title, token]);
 
   const getTransaksiProgram = useCallback(async () => {
     try {
       const res = await cekTryout(dataLatihan.id, token, "Tryout");
-      setUserHasPurchased(res.data);
+      setUserHasPurchased(res.data); // simpan full object { isFreeTO, isPurchase, ... }
     } catch (error) {
-      // console.log(error)
+      setUserHasPurchased(null);
     }
-  }, [token, dataLatihan.id]);
+  }, [token, dataLatihan?.id]);
 
   useEffect(() => {
     if (!dataLatihan) {
       router.push("/");
+      return;
     }
-    if (dataLatihan.op_pembahasan) {
+    if (dataLatihan.op_pembahasan)
       dispatch(addOpPembahasan(dataLatihan?.op_pembahasan));
-    }
     getTransaksiProgram();
     fetchDataAnswer();
   }, [getTransaksiProgram, fetchDataAnswer, dataLatihan, router]);
 
-  if (!dataLatihan) {
-    return null;
-  }
+  if (!dataLatihan) return null;
 
   return (
     <>
       <div className="p-7 font-poppins">
         <header className="flex space-x-2 text-xs">
-          <Link href={`/tryout`}>
+          <Link href="/tryout">
             <p>Tryout</p>
           </Link>
           <span>›</span>
@@ -359,19 +366,15 @@ export default function DetailSummaryTO() {
             </p>
           </div>
 
-          {/* ── TOMBOL KERJAKAN — ditambahkan logika periode ── */}
+          {/* ── TOMBOL KERJAKAN ── */}
           <button
             onClick={() => {
-              if (!bisaDiklik) return; // blokir jika di luar periode
+              if (!bisaDiklik) return;
               setOpen(true);
             }}
             disabled={!bisaDiklik}
             className={`bg-primary text-white px-4 py-2 rounded font-poppins my-3 text-xs
-              ${
-                bisaDiklik
-                  ? "hover:bg-primary cursor-pointer"
-                  : "opacity-50 cursor-not-allowed"
-              }`}
+              ${bisaDiklik ? "hover:bg-primary cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
           >
             {bisaDiklik
               ? dataSoal &&
@@ -381,14 +384,14 @@ export default function DetailSummaryTO() {
                 : "Belum Tersedia"}
           </button>
 
-          {/* Keterangan periode di bawah tombol */}
+          {/* Keterangan periode */}
           {periodeInfo && (
             <p className={`text-[10px] ${periodeInfo.color}`}>
               {periodeInfo.text}
             </p>
           )}
-          {/* ── END TOMBOL ── */}
 
+          {/* Modal konfirmasi mulai latihan */}
           {open && (
             <div className="fixed inset-0 z-50 flex items-center justify-center font-poppins bg-gray-300/60 backdrop-blur-sm">
               <div className="bg-white rounded-md shadow-md max-w-md w-full p-6 space-y-4">
@@ -431,7 +434,6 @@ export default function DetailSummaryTO() {
 
         <div className="space-y-6 bg-white">
           <div className="relative">
-            {/* Menu atas */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <button
                 className={`${!detailPurchased.isFreeTO ? "" : "disabled pointer-events-none"}`}
@@ -445,8 +447,8 @@ export default function DetailSummaryTO() {
                 <CardMenu
                   icon={<BarChart2 size={32} />}
                   label="Statistik Nilai"
-                  color={"bg-white shadow-md cursor-pointer"}
-                  textColor={"text-blue-600"}
+                  color="bg-white shadow-md cursor-pointer"
+                  textColor="text-blue-600"
                   border="border-gray-200"
                 />
               </button>
@@ -462,8 +464,8 @@ export default function DetailSummaryTO() {
                 <CardMenu
                   icon={<Award size={32} />}
                   label="Rapor"
-                  color={"bg-white shadow-md cursor-pointer"}
-                  textColor={"text-yellow-600"}
+                  color="bg-white shadow-md cursor-pointer"
+                  textColor="text-yellow-600"
                   border="border-gray-200"
                 />
               </button>
@@ -479,8 +481,8 @@ export default function DetailSummaryTO() {
                 <CardMenu
                   icon={<BookOpen size={32} />}
                   label="Pembahasan"
-                  color={"bg-white shadow-md cursor-pointer"}
-                  textColor={"text-green-600"}
+                  color="bg-white shadow-md cursor-pointer"
+                  textColor="text-green-600"
                   border="border-gray-200"
                 />
               </button>
@@ -496,14 +498,14 @@ export default function DetailSummaryTO() {
                 <CardMenu
                   icon={<Clock size={32} />}
                   label="Waktu Pengerjaan"
-                  color={"bg-white shadow-md cursor-pointer"}
-                  textColor={"text-pink-600"}
+                  color="bg-white shadow-md cursor-pointer"
+                  textColor="text-pink-600"
                   border="border-gray-200"
                 />
               </button>
             </div>
 
-            {/* Overlay 1: Belum beli (isFreeTO) */}
+            {/* Overlay 1: Belum beli premium */}
             {detailPurchased.isFreeTO && (
               <div className="absolute inset-0 z-10 rounded-xl bg-gray-900/40 flex items-center justify-center">
                 <div className="text-center px-3 sm:px-5 max-w-[90%]">
@@ -547,8 +549,7 @@ export default function DetailSummaryTO() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0
-                          002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
                       </svg>
                     </div>
@@ -575,7 +576,6 @@ export default function DetailSummaryTO() {
           {/* Panel Nilai */}
           <div className="border border-gray-300 rounded-md p-6 bg-white">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              {/* Donut Chart */}
               <div className="flex flex-col items-center">
                 <div className="relative w-[120px] h-[120px]">
                   <svg
@@ -610,17 +610,16 @@ export default function DetailSummaryTO() {
                 </div>
                 <div className="flex gap-3 mt-2 text-sm">
                   <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                    <span className="w-3 h-3 bg-blue-500 rounded-full" />
                     Poin terakhir
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 bg-gray-300 rounded-full"></span>
+                    <span className="w-3 h-3 bg-gray-300 rounded-full" />
                     Maksimal Poin
                   </div>
                 </div>
               </div>
 
-              {/* Detail Nilai */}
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
                 {(() => {
                   const mergedMateri = dataSoal.properties.materi.reduce(
@@ -672,14 +671,9 @@ export default function DetailSummaryTO() {
 function CardMenu({ icon, label, color, textColor, border }) {
   return (
     <div
-      className={`
-        p-[clamp(10px,2vw,16px)]
-        border aspect-square rounded-xl
-        flex flex-col items-center justify-center
-        gap-[clamp(6px,1.5vw,10px)]
-        transition
-        ${color} ${border} ${textColor}
-      `}
+      className={`p-[clamp(10px,2vw,16px)] border aspect-square rounded-xl
+      flex flex-col items-center justify-center gap-[clamp(6px,1.5vw,10px)]
+      transition ${color} ${border} ${textColor}`}
     >
       <div className="flex items-center justify-center w-[clamp(28px,6vw,48px)] h-[clamp(28px,6vw,48px)]">
         {React.cloneElement(icon, {
@@ -697,12 +691,8 @@ function CardMenu({ icon, label, color, textColor, border }) {
 function NilaiCard({ label, value, grade }) {
   return (
     <div
-      className="
-        aspect-square w-full max-w-[220px] mx-auto
-        rounded-xl border border-orange-200
-        bg-linear-to-br from-orange-50 to-white
-        shadow-sm flex flex-col items-center justify-center text-center p-4
-      "
+      className="aspect-square w-full max-w-[220px] mx-auto rounded-xl border border-orange-200
+      bg-linear-to-br from-orange-50 to-white shadow-sm flex flex-col items-center justify-center text-center p-4"
     >
       <p className="text-[clamp(11px,2vw,14px)] text-gray-500 font-medium mb-1">
         {label}

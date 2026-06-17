@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import PasswordButton from "@/components/user/passwordBotton";
 import VoucherModal from "@/components/user/voucherModal"; // ← (1) import
+import Link from "next/link";
 
 export default function DetailKelasZoom() {
   const router = useRouter();
@@ -54,11 +55,11 @@ export default function DetailKelasZoom() {
   const [userHasPurchased, setUserHasPurchased] = useState(false);
 
   const getTransaksiProgram = useCallback(async () => {
+    if (!programId) return; // tunggu sampai router.query.id tersedia
     try {
       const res = await getTransaksiPembelian(programId, token, "Kelas Online");
-      // Buka akses konten hanya jika isPurchased atau isActive = true
       setUserHasPurchased(
-        res.data?.isPurchased === true || res.data?.isActive === true,
+        res.data?.isPurchase === true || res.data?.isActive === true,
       );
     } catch (error) {
       setUserHasPurchased(false);
@@ -153,7 +154,7 @@ export default function DetailKelasZoom() {
     <div className="px-7 font-poppins mt-5">
       {/* Header */}
       <p className="text-xs text-gray-500 mb-2">
-        Live Class &gt;{" "}
+        <Link href={`/kelas-online`}>Live Class &gt; </Link>
         <span className="font-semibold">
           {userHasPurchased ? dataKelas.properties.judul : "Daftar Sekarang"}
         </span>
