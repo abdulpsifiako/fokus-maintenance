@@ -312,7 +312,7 @@ export default function DetailKelasZoom() {
                           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 transition"
                         >
                           <PlayCircle size={16} />
-                          Tonton Video
+                          Masuk Live Class
                           <ExternalLink size={14} />
                         </a>
                       )}
