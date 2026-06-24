@@ -81,6 +81,7 @@ module.exports = {
         data: null,
       });
     } catch (error) {
+      console.log(error);
       return res.status(500).json({
         status: 500,
         success: false,

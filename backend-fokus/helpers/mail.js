@@ -1,5 +1,5 @@
-const transporter =require('../configs/transport')
-const { default: hbs } = require('nodemailer-express-handlebars')
+const transporter = require("../configs/transport");
+const { default: hbs } = require("nodemailer-express-handlebars");
 const path = require("path");
 
 transporter.use(
@@ -12,12 +12,12 @@ transporter.use(
     },
     viewPath: path.resolve("./templates"),
     extName: ".handlebars",
-  })
+  }),
 );
 
 const sendEmail = async ({ to, subject, template, context }) => {
   await transporter.sendMail({
-    from: '"Fokus Edu" <test_mail@fokuspppk.my.id>',
+    from: '"Fokus Edu" <admin@fokusedu.id>',
     to,
     subject,
     template,

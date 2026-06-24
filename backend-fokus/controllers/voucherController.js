@@ -188,7 +188,7 @@ module.exports = {
       } else {
         // 2. Jika tidak ada di user, cek di voucherModel
         const voucher = await voucherModel.findOne({
-          where: { name: name },
+          where: { name: name, is_deleted: false },
         });
 
         if (voucher && voucher.nilai) {
